@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pymetrics - Lengths Game</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+
+        :root {
+            --bg-color: #27ae60;
+            --container-bg: #ffffff;
+            --primary-text: #2c3e50;
+            --secondary-text: #7f8c8d;
+            --win-color: #2ecc71;
+            --loss-color: #e74c3c;
+            --accent-color: #f39c12;
+            --shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: var(--bg-color);
+            color: var(--primary-text);
+            text-align: center;
+        }
+
+        .game-container {
+            width: 90%;
+            max-width: 700px;
+            background: var(--container-bg);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+            position: relative;
+            min-height: 450px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .game-header { position: absolute; top: 20px; left: 30px; }
+        .money-display { font-size: 1.5em; font-weight: 600; }
+        .money-display .icon { margin-right: 8px; }
+
+        /* --- Screens --- */
+        .screen { display: none; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; flex-grow: 1; }
+        .screen.visible { display: flex; animation: fadeIn 0.4s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* Instructions Screen */
+        #instructions-screen h1 { margin-bottom: 30px; }
+        #instructions-screen p { font-size: 1.1em; line-height: 1.8; }
+        .key-icon { font-weight: 600; padding: 3px 8px; border-radius: 5px; background: var(--primary-text); color: white; font-family: monospace; }
+        .face-emoji { font-size: 1.5em; vertical-align: middle; }
+
+        /* Game Screen */
+        .stimulus-area { width: 150px; height: 150px; display: flex; justify-content: center; align-items: center; position: relative; }
+        .fixation-cross { font-size: 5em; color: var(--secondary-text); display: none; }
+
+        .face-stimulus { width: 120px; height: 120px; border-radius: 50%; background: var(--win-color); position: relative; display: none; }
+        .eye { width: 12px; height: 12px; border-radius: 50%; background: white; position: absolute; top: 40px; }
+        .eye.left { left: 30px; }
+        .eye.right { right: 30px; }
+        .mouth { height: 8px; background: white; position: absolute; bottom: 35px; left: 50%; transform: translateX(-50%); }
+        .mouth.small { width: 40px; }
+        .mouth.big { width: 60px; }
+
+        .feedback-display { display: none; flex-direction: column; align-items: center; }
+        .feedback-icon { width: 120px; height: 120px; border-radius: 50%; background: #f0f4f8; display: flex; justify-content: center; align-items: center; font-size: 4em; }
+        .feedback-icon.correct { color: var(--win-color); }
+        .feedback-icon.incorrect { color: var(--loss-color); }
+        .feedback-text { margin-top: 15px; }
+        .feedback-text .answer { font-weight: 700; font-size: 1.1em; }
+        .feedback-text .reward { font-size: 1em; color: var(--secondary-text); }
+
+        /* Results Screen */
+        #results-screen { align-items: flex-start; text-align: left; }
+        #results-screen h2 { width: 100%; text-align: center; font-size: 1.8em; margin-bottom: 30px; }
+        .results-summary p { font-size: 1.1em; margin: 12px 0; color: var(--secondary-text); }
+        .results-summary strong { color: var(--primary-text); }
+        .button-container { display: flex; justify-content: space-between; width: 100%; margin-top: auto; }
+        
+        /* General Button */
+        .primary-btn { padding: 15px 50px; font-size: 1.2em; font-weight: 600; border: none; border-radius: 10px; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1); background-color: var(--bg-color); color: var(--container-bg); margin-top: 20px; }
+        .primary-btn:hover { transform: translateY(-3px); }
+        .end-button { padding: 12px 30px; font-size: 1.1em; font-weight: 600; border-radius: 8px; border: none; cursor: pointer; background: #BDC3C7; color: #fff; transition: background-color 0.2s; }
+        .end-button:hover { background-color: #a9afb3; }
+    </style>
+</head>
+<body>
+
+    <div class="game-container">
+        <div class="game-header">
+            <div class="money-display"><span class="icon">💵</span><span id="money-value">$0.00</span></div>
+        </div>
+
+        <div id="instructions-screen" class="screen visible">
+            <h1>Instructions</h1>
+            <p>You will see one of two faces <span class="face-emoji">🙂😐</span>.</p>
+            <p>If you think the face has a <strong>little mouth</strong>, press <span class="key-icon">←</span>.</p>
+            <p>If you think the face has a <strong>big mouth</strong>, press <span class="key-icon">→</span>.</p>
+            <p>Try to earn as much as you can!</p>
+            <button id="start-btn" class="primary-btn">Begin</button>
+        </div>
+
+        <div id="game-screen" class="screen">
+            <div class="stimulus-area">
+                <div class="fixation-cross" id="fixation-cross">+</div>
+                <div class="face-stimulus" id="face-stimulus">
+                    <div class="eye left"></div>
+                    <div class="eye right"></div>
+                    <div class="mouth" id="mouth"></div>
+                </div>
+                <div class="feedback-display" id="feedback-display">
+                    <div class="feedback-icon" id="feedback-icon">✓</div>
+                    <div class="feedback-text">
+                        <p class="answer" id="feedback-answer"></p>
+                        <p class="reward" id="feedback-reward"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="results-screen" class="screen">
+            <h2>Game Complete</h2>
+            <div class="results-summary">
+                <p>You have completed this game.</p>
+                <p><strong>Total $ collected:</strong> $<span id="total-collected-value"></span></p>
+                <p><strong>Total correct:</strong> <span id="total-correct-value"></span></p>
+                <p><strong>Small mouths correct:</strong> <span id="small-correct-value"></span></p>
+                <p><strong>Big mouths correct:</strong> <span id="big-correct-value"></span></p>
+                <p>Click the next button to move on to the next game.</p>
+            </div>
+            <div class="button-container">
+                <button class="end-button" id="next-btn">Next</button>
+                <button class="end-button" id="menu-btn">Back To Menu</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- DOM Elements ---
+            const screens = { instructions: document.getElementById('instructions-screen'), game: document.getElementById('game-screen'), results: document.getElementById('results-screen') };
+            const startBtn = document.getElementById('start-btn');
+            const moneyValue = document.getElementById('money-value');
+            const fixationCross = document.getElementById('fixation-cross');
+            const faceStimulus = document.getElementById('face-stimulus');
+            const mouth = document.getElementById('mouth');
+            const feedbackDisplay = document.getElementById('feedback-display');
+            const feedbackIcon = document.getElementById('feedback-icon');
+            const feedbackAnswer = document.getElementById('feedback-answer');
+            const feedbackReward = document.getElementById('feedback-reward');
+            // Results Screen Elements
+            const totalCollectedValue = document.getElementById('total-collected-value');
+            const totalCorrectValue = document.getElementById('total-correct-value');
+            const smallCorrectValue = document.getElementById('small-correct-value');
+            const bigCorrectValue = document.getElementById('big-correct-value');
+            const nextBtn = document.getElementById('next-btn');
+            const menuBtn = document.getElementById('menu-btn');
+
+            // --- Game Configuration ---
+            const TOTAL_TRIALS = 90;
+            const FIXATION_DURATION = 500;
+            const FEEDBACK_DURATION = 1200;
+            const REWARD_OPTIONS = [0, 0.10, 0.50];
+
+            // --- Game State & Data ---
+            let gameState = 'instructions';
+            let totalMoney, currentTrialNum;
+            let canRespond = false;
+            let currentTrial = {};
+            let correctSmall, totalSmall, correctBig, totalBig;
+
+            function showScreen(screenName) {
+                Object.values(screens).forEach(screen => screen.classList.remove('visible'));
+                screens[screenName].classList.add('visible');
+            }
+
+            function initGame() {
+                totalMoney = 0;
+                currentTrialNum = 0;
+                correctSmall = 0; totalSmall = 0;
+                correctBig = 0; totalBig = 0;
+                updateMoneyDisplay();
+                gameState = 'instructions';
+                showScreen('instructions');
+            }
+
+            function runTrial() {
+                if (currentTrialNum >= TOTAL_TRIALS) {
+                    endGame();
+                    return;
+                }
+                
+                gameState = 'fixation';
+                hideAllStimuli();
+                fixationCross.style.display = 'block';
+
+                setTimeout(showStimulus, FIXATION_DURATION);
+            }
+
+            function showStimulus() {
+                currentTrialNum++;
+                gameState = 'stimulus';
+                canRespond = true;
+
+                const mouthType = Math.random() < 0.5 ? 'small' : 'big';
+                currentTrial = { correctAnswer: mouthType };
+
+                mouth.className = `mouth ${mouthType}`;
+                if (mouthType === 'small') totalSmall++;
+                else totalBig++;
+
+                hideAllStimuli();
+                faceStimulus.style.display = 'block';
+            }
+
+            function handleKeyPress(e) {
+                if (!canRespond || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return;
+                
+                canRespond = false;
+                const userAnswer = e.key === 'ArrowLeft' ? 'small' : 'big';
+                const isCorrect = userAnswer === currentTrial.correctAnswer;
+                
+                showFeedback(isCorrect);
+            }
+
+            function showFeedback(isCorrect) {
+                gameState = 'feedback';
+                hideAllStimuli();
+                
+                feedbackIcon.textContent = isCorrect ? '✓' : '✗';
+                feedbackIcon.className = isCorrect ? 'feedback-icon correct' : 'feedback-icon incorrect';
+                feedbackAnswer.textContent = currentTrial.correctAnswer === 'small' ? 'Little Mouth' : 'Big Mouth';
+
+                let rewardAmount = 0;
+                if (isCorrect) {
+                    if (currentTrial.correctAnswer === 'small') correctSmall++;
+                    else correctBig++;
+                    
+                    rewardAmount = REWARD_OPTIONS[Math.floor(Math.random() * REWARD_OPTIONS.length)];
+                    if (rewardAmount > 0) {
+                        totalMoney += rewardAmount;
+                        feedbackReward.textContent = `You won $${rewardAmount.toFixed(2)}!`;
+                    } else {
+                        feedbackReward.textContent = '';
+                    }
+                    updateMoneyDisplay();
+                } else {
+                    feedbackReward.textContent = '';
+                }
+                
+                feedbackDisplay.style.display = 'flex';
+                setTimeout(runTrial, FEEDBACK_DURATION);
+            }
+
+            function hideAllStimuli() {
+                fixationCross.style.display = 'none';
+                faceStimulus.style.display = 'none';
+                feedbackDisplay.style.display = 'none';
+            }
+            
+            function updateMoneyDisplay() {
+                moneyValue.textContent = `$${totalMoney.toFixed(2)}`;
+            }
+
+            function endGame() {
+                gameState = 'finished';
+                totalCollectedValue.textContent = totalMoney.toFixed(2);
+                totalCorrectValue.textContent = `${correctSmall + correctBig} / ${TOTAL_TRIALS}`;
+                smallCorrectValue.textContent = `${correctSmall} / ${totalSmall}`;
+                bigCorrectValue.textContent = `${correctBig} / ${totalBig}`;
+                showScreen('results');
+            }
+
+            // --- Event Listeners ---
+            startBtn.addEventListener('click', () => {
+                showScreen('game');
+                runTrial();
+            });
+            document.addEventListener('keydown', handleKeyPress);
+            nextBtn.addEventListener('click', initGame);
+            menuBtn.addEventListener('click', initGame);
+            
+            initGame();
+        });
+    </script>
+</body>
+</html>

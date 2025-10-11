@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pymetrics Games Showcase</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+
+        :root {
+            --bg-color: #f0f4f8;
+            --primary-text: #2c3e50;
+            --card-bg: #ffffff;
+            --accent-color: #27ae60;
+            --shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+            --hover-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--primary-text);
+            margin: 0;
+            padding: 40px 20px;
+            text-align: center;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        p {
+            font-size: 1.2em;
+            color: #7f8c8d;
+            margin-bottom: 40px;
+        }
+
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+        }
+
+        .game-card {
+            background-color: var(--card-bg);
+            border-radius: 15px;
+            box-shadow: var(--shadow);
+            padding: 30px;
+            text-decoration: none;
+            color: var(--primary-text);
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 150px;
+        }
+
+        .game-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--hover-shadow);
+            color: var(--accent-color);
+        }
+
+        .game-card h2 {
+            margin: 0;
+            font-size: 1.5em;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Pymetrics Games Showcase</h1>
+        <p>A collection of recreated Pymetrics assessment games.</p>
+
+        <div class="games-grid">
+            <a href="arrows.html" class="game-card">
+                <h2>Arrows Game</h2>
+            </a>
+            <a href="balloon.html" class="game-card">
+                <h2>Balloon Game</h2>
+            </a>
+            <a href="cards.html" class="game-card">
+                <h2>Cards Game</h2>
+            </a>
+            <a href="digits.html" class="game-card">
+                <h2>Digits Game</h2>
+            </a>
+            <a href="easy_hard.html" class="game-card">
+                <h2>Easy or Hard Game</h2>
+            </a>
+            <a href="keypress.html" class="game-card">
+                <h2>Keypress Game</h2>
+            </a>
+            <a href="length.html" class="game-card">
+                <h2>Lengths Game</h2>
+            </a>
+            <a href="stop.html" class="game-card">
+                <h2>Stop Game</h2>
+            </a>
+            <a href="tower.html" class="game-card">
+                <h2>Tower Game</h2>
+            </a>
+        </div>
+    </div>
+
+</body>
+</html>

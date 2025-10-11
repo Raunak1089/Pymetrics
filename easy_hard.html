@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pymetrics - Easy or Hard Game</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+
+        :root {
+            --bg-color: #f0f4f8;
+            --container-bg: #ffffff;
+            --primary-text: #2c3e50;
+            --secondary-text: #7f8c8d;
+            --easy-color: #27ae60;
+            --hard-color: #c0392b;
+            --accent-color: #f39c12;
+            --shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: var(--bg-color);
+            color: var(--primary-text);
+            text-align: center;
+        }
+
+        .game-container {
+            width: 90%;
+            max-width: 700px;
+            background: var(--container-bg);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+            position: relative;
+            min-height: 450px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .game-header {
+            position: absolute;
+            top: 20px;
+            left: 30px;
+            right: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .money-display, .main-timer-display {
+            font-size: 1.5em;
+            font-weight: 600;
+        }
+
+        .main-timer-display { color: var(--secondary-text); }
+        .icon { margin-right: 8px; }
+
+        /* --- Screens --- */
+        .screen { display: none; flex-direction: column; align-items: center; justify-content: center; flex-grow: 1; width: 100%; height: 100%; }
+        .screen.visible { display: flex; animation: fadeIn 0.5s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* Instructions Screen */
+        #instructions-screen h1 { color: var(--accent-color); font-size: 1.5em; margin-top: 0; margin-bottom: 20px; }
+        #instructions-screen p { font-size: 1.1em; line-height: 1.7; }
+        .spacebar { font-weight: 600; padding: 3px 8px; border-radius: 5px; background: var(--primary-text); color: white; font-family: monospace; }
+        
+        /* Choice Screen */
+        #choice-screen h2 { color: var(--accent-color); margin-top: 50px; }
+        #choice-screen .probability { font-size: 1.2em; margin-bottom: 30px; }
+        #choice-screen .probability strong { color: var(--primary-text); }
+        .choices-container { display: flex; justify-content: space-around; width: 100%; }
+        .choice-btn { width: 150px; height: 150px; border-radius: 50%; border: 5px solid; cursor: pointer; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: all 0.2s ease; }
+        .choice-btn:hover { transform: scale(1.05); box-shadow: 0 0 20px rgba(0,0,0,0.1); }
+        .choice-btn .amount { font-size: 2em; font-weight: 700; }
+        .choice-btn .label { font-size: 1.5em; font-weight: 600; }
+        #easy-choice { border-color: var(--easy-color); color: var(--easy-color); }
+        #hard-choice { border-color: var(--hard-color); color: var(--hard-color); }
+        .choice-timer-note { margin-top: 30px; background-color: #ecf0f1; padding: 10px; border-radius: 8px; }
+
+        /* Task Screen */
+        #task-screen { margin-top: 50px; }
+        .task-header { margin-bottom: 30px; }
+        .task-header h2 { font-size: 2em; margin: 0; }
+        .task-header p { font-size: 1.2em; color: var(--secondary-text); margin: 5px 0 0 0; }
+        .task-timer { font-size: 2.5em; font-weight: 700; color: white; background: var(--accent-color); width: 60px; height: 60px; border-radius: 50%; line-height: 60px; position: absolute; top: 50px; right: 30px; }
+        .progress-bar-container { width: 80px; height: 200px; border: 3px solid var(--primary-text); border-radius: 10px; overflow: hidden; }
+        #progress-bar { width: 100%; height: 0%; background: var(--easy-color); transition: height 0.1s linear; }
+        #task-screen p.instruction { margin-top: 20px; font-size: 1.1em; }
+
+        /* Result Screen */
+        #result-screen .result-box { background: var(--easy-color); color: white; padding: 40px; border-radius: 15px; width: 80%; }
+        #result-screen h2 { margin-top: 0; }
+        #result-screen p { font-size: 1.2em; margin-bottom: 0; }
+
+        /* End Game Screen */
+        #end-game-screen h2 { font-size: 2em; }
+        #final-score { font-size: 4em; font-weight: 700; color: var(--easy-color); margin: 10px 0; }
+        
+        /* General Button */
+        .primary-btn { padding: 15px 40px; font-size: 1.2em; font-weight: 600; border: none; border-radius: 10px; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1); background-color: var(--accent-color); color: white; margin-top: 20px; }
+        .primary-btn:hover { transform: translateY(-3px); box-shadow: 0 5px 12px rgba(0, 0, 0, 0.2); filter: brightness(1.1); }
+    </style>
+</head>
+<body>
+
+    <div class="game-container">
+        <div class="game-header">
+            <div class="money-display"><span class="icon">💵</span><span id="money-value">$0.00</span></div>
+            <div class="main-timer-display"><span class="icon">⏱️</span><span id="main-timer-value">2:00</span></div>
+        </div>
+
+        <div id="instructions-screen" class="screen visible">
+            <h1>📝 Instructions</h1>
+            <p>Choose between an <strong>Easy</strong> or <strong>Hard</strong> task to earn money.</p>
+            <p>You have <strong>2 minutes</strong> to earn as much as you can. You are not guaranteed to win on every trial, even if you complete the task.</p>
+            <p>If you don't choose within 5 seconds, a task will be chosen for you.</p>
+            <button id="start-btn" class="primary-btn">Start Game</button>
+        </div>
+
+        <div id="choice-screen" class="screen">
+            <h2>Choose your task</h2>
+            <p class="probability">Probability of winning: <strong id="probability-text"></strong></p>
+            <div class="choices-container">
+                <div class="choice-btn" id="easy-choice">
+                    <span class="amount" id="easy-reward">$1.00</span>
+                    <span class="label">EASY</span>
+                </div>
+                <div class="choice-btn" id="hard-choice">
+                    <span class="amount" id="hard-reward">$0.00</span>
+                    <span class="label">HARD</span>
+                </div>
+            </div>
+            <p class="choice-timer-note">A choice will be made randomly in <span id="choice-timer">5</span>s</p>
+        </div>
+        
+        <div id="task-screen" class="screen">
+            <div class="task-timer" id="task-timer-value">12</div>
+            <div class="task-header">
+                <h2 id="task-title">Hard Task</h2>
+                <p id="task-info">88% at earning $2.77</p>
+            </div>
+            <div class="progress-bar-container">
+                <div id="progress-bar"></div>
+            </div>
+            <p class="instruction">Press the <span class="spacebar">spacebar</span> repeatedly to fill the bar!</p>
+        </div>
+
+        <div id="result-screen" class="screen">
+            <div class="result-box">
+                <h2 id="result-title">You successfully completed the task!</h2>
+                <p id="result-message">You just earned: $2.77</p>
+            </div>
+        </div>
+        
+        <div id="end-game-screen" class="screen">
+            <h2>Time's Up!</h2>
+            <p>You earned a total of:</p>
+            <p id="final-score">$0.00</p>
+            <button id="play-again-btn" class="primary-btn">Play Again</button>
+        </div>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- DOM Elements ---
+            const screens = { instructions: document.getElementById('instructions-screen'), choice: document.getElementById('choice-screen'), task: document.getElementById('task-screen'), result: document.getElementById('result-screen'), endGame: document.getElementById('end-game-screen') };
+            const moneyValue = document.getElementById('money-value');
+            const mainTimerValue = document.getElementById('main-timer-value');
+            const startBtn = document.getElementById('start-btn');
+            const playAgainBtn = document.getElementById('play-again-btn');
+            
+            // Choice Screen
+            const probabilityText = document.getElementById('probability-text');
+            const easyChoiceBtn = document.getElementById('easy-choice');
+            const hardChoiceBtn = document.getElementById('hard-choice');
+            const hardRewardText = document.getElementById('hard-reward');
+            const choiceTimerText = document.getElementById('choice-timer');
+
+            // Task Screen
+            const taskTimerValue = document.getElementById('task-timer-value');
+            const taskTitle = document.getElementById('task-title');
+            const taskInfo = document.getElementById('task-info');
+            const progressBar = document.getElementById('progress-bar');
+            
+            // Result Screen
+            const resultTitle = document.getElementById('result-title');
+            const resultMessage = document.getElementById('result-message');
+            
+            // End Game Screen
+            const finalScore = document.getElementById('final-score');
+
+            // --- Game Config ---
+            const MAIN_GAME_DURATION = 120; // 2 minutes
+            const CHOICE_TIMEOUT = 5;
+            const TASKS = {
+                easy: { duration: 3, presses: 5, reward: 1.00 },
+                hard: { duration: 12, presses: 60, minReward: 1.24, maxReward: 4.30 }
+            };
+
+            // --- Game State ---
+            let totalMoney = 0;
+            let mainTimer, choiceTimer, taskTimer;
+            let mainTimeLeft, choiceTimeLeft, taskTimeLeft;
+            let currentTrial = {};
+            let keypressCount = 0;
+            let gameState = 'instructions';
+
+            // --- Game Flow ---
+            function showScreen(screenName) {
+                Object.values(screens).forEach(screen => screen.classList.remove('visible'));
+                screens[screenName].classList.add('visible');
+            }
+
+            function initGame() {
+                totalMoney = 0;
+                updateMoneyDisplay();
+                mainTimeLeft = MAIN_GAME_DURATION;
+                updateMainTimerDisplay();
+                clearInterval(mainTimer);
+                clearInterval(choiceTimer);
+                clearInterval(taskTimer);
+                showScreen('instructions');
+            }
+
+            function startMainGame() {
+                mainTimeLeft = MAIN_GAME_DURATION;
+                mainTimer = setInterval(() => {
+                    mainTimeLeft--;
+                    updateMainTimerDisplay();
+                    if (mainTimeLeft <= 0) {
+                        endGame();
+                    }
+                }, 1000);
+                startNewTrial();
+            }
+
+            function startNewTrial() {
+                if (mainTimeLeft <= 0) return;
+                gameState = 'choosing';
+                // Generate trial data
+                const probability = Math.random();
+                const hardReward = Math.random() * (TASKS.hard.maxReward - TASKS.hard.minReward) + TASKS.hard.minReward;
+                currentTrial = { probability, hardReward };
+                
+                // Update choice screen UI
+                let probCategory = probability < 0.3 ? 'Low' : probability < 0.7 ? 'Medium' : 'High';
+                probabilityText.textContent = `${probCategory} (${(probability * 100).toFixed(0)}%)`;
+                hardRewardText.textContent = `$${hardReward.toFixed(2)}`;
+                
+                showScreen('choice');
+                
+                // Start choice timer
+                choiceTimeLeft = CHOICE_TIMEOUT;
+                choiceTimerText.textContent = choiceTimeLeft;
+                choiceTimer = setInterval(() => {
+                    choiceTimeLeft--;
+                    choiceTimerText.textContent = choiceTimeLeft;
+                    if (choiceTimeLeft <= 0) {
+                        clearInterval(choiceTimer);
+                        selectTask(Math.random() < 0.5 ? 'easy' : 'hard'); // Random choice
+                    }
+                }, 1000);
+            }
+
+            function selectTask(type) {
+                clearInterval(choiceTimer);
+                gameState = 'performingTask';
+                keypressCount = 0;
+                
+                currentTrial.type = type;
+                const taskData = TASKS[type];
+                
+                // Setup task screen UI
+                taskTitle.textContent = `${type.charAt(0).toUpperCase() + type.slice(1)} Task`;
+                const reward = type === 'easy' ? taskData.reward : currentTrial.hardReward;
+                taskInfo.textContent = `${(currentTrial.probability * 100).toFixed(0)}% at earning $${reward.toFixed(2)}`;
+                progressBar.style.height = '0%';
+                progressBar.style.background = type === 'easy' ? 'var(--easy-color)' : 'var(--hard-color)';
+                
+                showScreen('task');
+                
+                // Start task timer
+                taskTimeLeft = taskData.duration;
+                taskTimerValue.textContent = taskTimeLeft;
+                taskTimer = setInterval(() => {
+                    taskTimeLeft--;
+                    taskTimerValue.textContent = taskTimeLeft;
+                    if (taskTimeLeft <= 0) {
+                        completeTask(false); // Failed
+                    }
+                }, 1000);
+            }
+
+            function handleKeyPress(e) {
+                if (gameState === 'performingTask' && e.code === 'Space') {
+                    e.preventDefault();
+                    keypressCount++;
+                    const taskData = TASKS[currentTrial.type];
+                    progressBar.style.height = `${(keypressCount / taskData.presses) * 100}%`;
+                    
+                    if (keypressCount >= taskData.presses) {
+                        completeTask(true); // Success
+                    }
+                }
+            }
+
+            function completeTask(isSuccess) {
+                clearInterval(taskTimer);
+                gameState = 'showingResult';
+                
+                if (!isSuccess) {
+                    resultTitle.textContent = "You failed to complete the task.";
+                    resultMessage.textContent = "You didn't earn any money.";
+                } else {
+                    resultTitle.textContent = "You successfully completed the task!";
+                    const won = Math.random() < currentTrial.probability;
+                    if (won) {
+                        const reward = currentTrial.type === 'easy' ? TASKS.easy.reward : currentTrial.hardReward;
+                        totalMoney += reward;
+                        updateMoneyDisplay();
+                        resultMessage.textContent = `You just earned: $${reward.toFixed(2)}`;
+                    } else {
+                        resultMessage.textContent = "You didn't earn any money for this task.";
+                    }
+                }
+                
+                showScreen('result');
+                setTimeout(startNewTrial, 2000); // Wait 2 seconds before next trial
+            }
+            
+            function endGame() {
+                clearInterval(mainTimer);
+                clearInterval(choiceTimer);
+                clearInterval(taskTimer);
+                gameState = 'gameOver';
+                finalScore.textContent = `$${totalMoney.toFixed(2)}`;
+                showScreen('endGame');
+            }
+
+            // --- UI Updaters ---
+            function updateMoneyDisplay() {
+                moneyValue.textContent = `$${totalMoney.toFixed(2)}`;
+            }
+            function updateMainTimerDisplay() {
+                const minutes = Math.floor(mainTimeLeft / 60);
+                const seconds = mainTimeLeft % 60;
+                mainTimerValue.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            }
+
+            // --- Event Listeners ---
+            startBtn.addEventListener('click', startMainGame);
+            playAgainBtn.addEventListener('click', initGame);
+            easyChoiceBtn.addEventListener('click', () => selectTask('easy'));
+            hardChoiceBtn.addEventListener('click', () => selectTask('hard'));
+            document.addEventListener('keydown', handleKeyPress);
+            
+            // --- Initialise ---
+            initGame();
+        });
+    </script>
+</body>
+</html>

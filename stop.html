@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pymetrics - Stop Game</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+
+        :root {
+            --bg-color: #27ae60;
+            --container-bg: #ffffff;
+            --primary-text: #2c3e50;
+            --secondary-text: #7f8c8d;
+            --red-color: #e74c3c;
+            --green-color: #2ecc71;
+            --accent-color: #f39c12;
+            --shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: var(--bg-color);
+            color: var(--primary-text);
+            text-align: center;
+        }
+
+        .game-container {
+            width: 90%;
+            max-width: 600px;
+            background: var(--container-bg);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+            position: relative;
+            height: 400px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        /* --- Screens --- */
+        .screen { display: none; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; }
+        .screen.visible { display: flex; animation: fadeIn 0.4s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* Instructions Screen */
+        #instructions-screen h1 { background: var(--accent-color); color: white; padding: 5px 15px; border-radius: 20px; font-size: 1.2em; margin-top: 0; margin-bottom: 30px; }
+        #instructions-screen p { font-size: 1.2em; line-height: 1.8; margin: 10px 0; }
+        .spacebar { font-weight: 600; padding: 3px 8px; border-radius: 5px; background: var(--primary-text); color: white; font-family: monospace; }
+        .dot { display: inline-block; width: 1em; height: 1em; border-radius: 50%; vertical-align: middle; margin: 0 5px; }
+        .red-dot { background-color: var(--red-color); }
+        .green-dot { background-color: var(--green-color); }
+
+        /* Game Screen */
+        #stimulus-container { width: 150px; height: 150px; display: flex; justify-content: center; align-items: center; }
+        .circle { width: 120px; height: 120px; border-radius: 50%; display: none; }
+        .circle.red { background-color: var(--red-color); }
+        .circle.green { background-color: var(--green-color); }
+        .fixation-cross { font-size: 5em; color: var(--secondary-text); display: none; }
+        #feedback-text { position: absolute; bottom: 40px; font-size: 1.5em; font-weight: 600; color: var(--red-color); opacity: 0; transition: opacity 0.3s ease-out; }
+        #feedback-text.visible { opacity: 1; }
+
+        /* MODIFIED: Results Screen Styling */
+        #results-screen { text-align: left; align-items: flex-start; }
+        #results-screen h2 { font-size: 1.8em; color: var(--primary-text); margin-bottom: 20px; width: 100%; text-align: center; }
+        .results-summary p { font-size: 1.1em; margin: 10px 0; }
+        .results-summary strong { font-weight: 600; color: var(--primary-text); }
+        #results-screen .button-container { width: 100%; text-align: center; margin-top: auto; }
+
+        /* General Button */
+        .primary-btn { padding: 15px 40px; font-size: 1.2em; font-weight: 600; border: none; border-radius: 10px; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1); background-color: var(--bg-color); color: var(--container-bg); margin-top: 20px; }
+        .primary-btn:hover { transform: translateY(-3px); box-shadow: 0 5px 12px rgba(0, 0, 0, 0.2); }
+    </style>
+</head>
+<body>
+
+    <div class="game-container">
+        
+        <div id="instructions-screen" class="screen visible">
+            <h1>📝 Instructions</h1>
+            <p>Press the <span class="spacebar">spacebar</span> when you see a <span class="dot red-dot"></span>.</p>
+            <p>Do <strong>not</strong> do anything when you see a <span class="dot green-dot"></span>.</p>
+            <p>Please respond as quickly and accurately as possible.</p>
+            <button id="start-btn" class="primary-btn">Start</button>
+        </div>
+
+        <div id="game-screen" class="screen">
+            <div id="stimulus-container">
+                <div class="circle red" id="red-circle"></div>
+                <div class="circle green" id="green-circle"></div>
+                <div class="fixation-cross" id="fixation-cross">+</div>
+            </div>
+            <div id="feedback-text"></div>
+        </div>
+
+        <div id="results-screen" class="screen">
+            <h2>Game Complete</h2>
+            <div class="results-summary">
+                <p>You have completed this game.</p>
+                <p><strong>Total correct:</strong> <span id="total-correct-value"></span></p>
+                <p><strong>Green correct:</strong> <span id="green-correct-value"></span></p>
+                <p><strong>Red correct:</strong> <span id="red-correct-value"></span></p>
+            </div>
+            <div class="button-container">
+                <button id="play-again-btn" class="primary-btn">Play Again</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- DOM Elements ---
+            const screens = { instructions: document.getElementById('instructions-screen'), game: document.getElementById('game-screen'), results: document.getElementById('results-screen') };
+            const startBtn = document.getElementById('start-btn');
+            const playAgainBtn = document.getElementById('play-again-btn');
+            const redCircle = document.getElementById('red-circle');
+            const greenCircle = document.getElementById('green-circle');
+            const fixationCross = document.getElementById('fixation-cross');
+            const feedbackText = document.getElementById('feedback-text');
+            
+            // Result Screen Elements
+            const totalCorrectValue = document.getElementById('total-correct-value');
+            const greenCorrectValue = document.getElementById('green-correct-value');
+            const redCorrectValue = document.getElementById('red-correct-value');
+
+            // --- Game Configuration ---
+            const TOTAL_TRIALS = 40; // Example total
+            const GO_PROBABILITY = 0.7;
+            const STIMULUS_DURATION = 1000;
+            const FIXATION_DURATION = 500;
+
+            // --- Game State Variables ---
+            let gameState = 'instructions';
+            let currentTrialNum = 0;
+            let currentStimulusType = null;
+            let trialTimeout;
+            let canRespond = false;
+            
+            // --- MODIFIED: Detailed Data Collection ---
+            let correctGoResponses, totalGoTrials, correctNoGoResponses, totalNoGoTrials;
+
+            // --- Game Logic ---
+            function showScreen(screenName) {
+                Object.values(screens).forEach(screen => screen.classList.remove('visible'));
+                screens[screenName].classList.add('visible');
+            }
+
+            function initGame() {
+                currentTrialNum = 0;
+                correctGoResponses = 0;
+                totalGoTrials = 0;
+                correctNoGoResponses = 0;
+                totalNoGoTrials = 0;
+                gameState = 'instructions';
+                showScreen('instructions');
+            }
+
+            function runTrial() {
+                if (currentTrialNum >= TOTAL_TRIALS) {
+                    endGame();
+                    return;
+                }
+                
+                gameState = 'fixation';
+                hideAllStimuli();
+                fixationCross.style.display = 'block';
+                feedbackText.classList.remove('visible');
+
+                setTimeout(() => {
+                    hideAllStimuli();
+                    currentTrialNum++;
+                    gameState = 'stimulus';
+                    canRespond = true;
+                    currentStimulusType = Math.random() < GO_PROBABILITY ? 'go' : 'no-go';
+                    
+                    if (currentStimulusType === 'go') {
+                        redCircle.style.display = 'block';
+                        totalGoTrials++;
+                        trialTimeout = setTimeout(() => handleMissedGo(), STIMULUS_DURATION);
+                    } else {
+                        greenCircle.style.display = 'block';
+                        totalNoGoTrials++;
+                        trialTimeout = setTimeout(() => handleCorrectNoGo(), STIMULUS_DURATION);
+                    }
+                }, FIXATION_DURATION);
+            }
+
+            function handleKeyPress(e) {
+                if (e.code !== 'Space' || !canRespond) return;
+                
+                canRespond = false;
+                clearTimeout(trialTimeout);
+
+                if (currentStimulusType === 'go') { // Correct Hit
+                    correctGoResponses++;
+                    feedbackText.classList.remove('visible');
+                    runTrial();
+                } else { // Commission Error (pressed on green)
+                    showFeedback("Don't press for green");
+                    setTimeout(runTrial, 1500);
+                }
+            }
+            
+            function handleMissedGo() { // Omission Error (didn't press for red)
+                canRespond = false;
+                showFeedback("Missed!");
+                setTimeout(runTrial, 1500);
+            }
+            
+            function handleCorrectNoGo() { // Correctly didn't press for green
+                canRespond = false;
+                correctNoGoResponses++;
+                feedbackText.classList.remove('visible');
+                runTrial();
+            }
+
+            function showFeedback(message) {
+                feedbackText.textContent = message;
+                feedbackText.classList.add('visible');
+            }
+
+            function hideAllStimuli() {
+                redCircle.style.display = 'none';
+                greenCircle.style.display = 'none';
+                fixationCross.style.display = 'none';
+            }
+
+            // MODIFIED: endGame function to show detailed stats
+            function endGame() {
+                gameState = 'finished';
+                const totalCorrect = correctGoResponses + correctNoGoResponses;
+                
+                totalCorrectValue.textContent = `${totalCorrect} / ${TOTAL_TRIALS}`;
+                greenCorrectValue.textContent = `${correctNoGoResponses} / ${totalNoGoTrials}`;
+                redCorrectValue.textContent = `${correctGoResponses} / ${totalGoTrials}`;
+                
+                showScreen('results');
+            }
+
+            // --- Event Listeners ---
+            startBtn.addEventListener('click', () => {
+                showScreen('game');
+                runTrial();
+            });
+            playAgainBtn.addEventListener('click', initGame);
+            document.addEventListener('keydown', handleKeyPress);
+            
+            // --- Initialise ---
+            initGame();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pymetrics - Arrows Game</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+
+        :root {
+            --bg-color: #27ae60;
+            --container-bg: #ffffff;
+            --primary-text: #2c3e50;
+            --secondary-text: #7f8c8d;
+            --blue-color: #2980b9;
+            --red-color: #c0392b;
+            --accent-color: #f39c12;
+            --shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: var(--bg-color);
+            color: var(--primary-text);
+            text-align: center;
+        }
+
+        .game-container {
+            width: 90%;
+            max-width: 700px;
+            background: var(--container-bg);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+            position: relative;
+            min-height: 450px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        /* --- Screens --- */
+        .screen { display: none; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; }
+        .screen.visible { display: flex; animation: fadeIn 0.4s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* Instructions Screen */
+        #instructions-screen { text-align: left; }
+        #instructions-screen h1 { background: var(--accent-color); color: white; padding: 5px 15px; border-radius: 20px; font-size: 1.2em; margin-bottom: 30px; display: inline-block; }
+        #instructions-screen p { font-size: 1.1em; line-height: 1.8; }
+        .key-icon { font-weight: 600; padding: 3px 8px; border-radius: 5px; background: var(--primary-text); color: white; font-family: monospace; }
+        .instruction-arrows { font-size: 2em; font-weight: 700; letter-spacing: 10px; }
+        .blue-arrows { color: var(--blue-color); }
+        .red-arrows { color: var(--red-color); }
+
+        /* Game Screen */
+        #game-screen { font-size: 5em; font-weight: 700; letter-spacing: 15px; }
+        #stimulus-display { display: none; }
+        #fixation-cross { color: var(--secondary-text); display: none; }
+
+        /* Results Screen */
+        #results-screen { align-items: flex-start; text-align: left; }
+        #results-screen h2 { width: 100%; text-align: center; font-size: 1.8em; margin-bottom: 30px; }
+        .results-summary p { font-size: 1.1em; margin: 12px 0; color: var(--secondary-text); }
+        .results-summary strong { color: var(--primary-text); }
+        .button-container { display: flex; justify-content: space-between; width: 100%; margin-top: auto; }
+        
+        /* General Button */
+        .primary-btn { padding: 15px 50px; font-size: 1.2em; font-weight: 600; border: none; border-radius: 10px; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1); background-color: var(--bg-color); color: var(--container-bg); margin-top: 20px; }
+        .primary-btn:hover { transform: translateY(-3px); }
+        .end-button { padding: 12px 30px; font-size: 1.1em; font-weight: 600; border-radius: 8px; border: none; cursor: pointer; background: #BDC3C7; color: #fff; transition: background-color 0.2s; }
+        .end-button:hover { background-color: #a9afb3; }
+    </style>
+</head>
+<body>
+
+    <div class="game-container">
+        
+        <div id="instructions-screen" class="screen visible">
+            <h1 align="center">📝 Instructions</h1>
+            <p>If Arrows are <strong style="color:var(--blue-color)">Blue</strong>, use <span class="key-icon">←</span> <span class="key-icon">→</span> to indicate which direction the <strong>center</strong> arrow points.</p>
+            <div class="instruction-arrows blue-arrows">→→<span style="border:2px solid var(--accent-color); border-radius:5px; padding: 0 5px;">←</span>→→</div>
+            <br>
+            <p>If Arrows are <strong style="color:var(--red-color)">Red</strong>, use <span class="key-icon">←</span> <span class="key-icon">→</span> to indicate which direction the <strong>side</strong> arrows point.</p>
+            <div class="instruction-arrows red-arrows"><span style="border:2px solid var(--accent-color); border-radius:5px; padding: 0 5px;">←</span>←→←<span style="border:2px solid var(--accent-color); border-radius:5px; padding: 0 5px;">←</span></div>
+            <p align="center">There will be 135 rounds. Please respond as quickly and accurately as possible.</p>
+            <div align="center"><button id="start-btn" class="primary-btn">Begin</button></div>
+        </div>
+
+        <div id="game-screen" class="screen">
+            <div id="stimulus-display"></div>
+            <div id="fixation-cross">+</div>
+        </div>
+
+        <div id="results-screen" class="screen">
+            <h2>Game Complete</h2>
+            <div class="results-summary">
+                <p>You have completed this game.</p>
+                <p><strong>Total correct:</strong> <span id="total-correct-value"></span></p>
+                <p><strong>Blue or black arrows correct:</strong> <span id="blue-correct-value"></span></p>
+                <p><strong>Red arrows correct:</strong> <span id="red-correct-value"></span></p>
+                <p>Click the next button to move on to the next game.</p>
+            </div>
+            <div class="button-container">
+                <button class="end-button" id="next-btn">Next</button>
+                <button class="end-button" id="menu-btn">Back To Menu</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- DOM Elements ---
+            const screens = { instructions: document.getElementById('instructions-screen'), game: document.getElementById('game-screen'), results: document.getElementById('results-screen') };
+            const startBtn = document.getElementById('start-btn');
+            const stimulusDisplay = document.getElementById('stimulus-display');
+            const fixationCross = document.getElementById('fixation-cross');
+            const totalCorrectValue = document.getElementById('total-correct-value');
+            const blueCorrectValue = document.getElementById('blue-correct-value');
+            const redCorrectValue = document.getElementById('red-correct-value');
+            const nextBtn = document.getElementById('next-btn');
+            const menuBtn = document.getElementById('menu-btn');
+
+            // --- Game Configuration ---
+            const TOTAL_TRIALS = 135;
+            const STIMULUS_DURATION = 1000;
+            const FIXATION_DURATION = 400;
+
+            // --- Game State & Data ---
+            let gameState = 'instructions';
+            let currentTrialNum = 0;
+            let trialTimeout;
+            let canRespond = false;
+            let currentTrial = {};
+            let correctBlue, totalBlue, correctRed, totalRed;
+
+            // --- Game Logic ---
+            function showScreen(screenName) {
+                Object.values(screens).forEach(screen => screen.classList.remove('visible'));
+                screens[screenName].classList.add('visible');
+            }
+
+            function initGame() {
+                currentTrialNum = 0;
+                correctBlue = 0; totalBlue = 0;
+                correctRed = 0; totalRed = 0;
+                gameState = 'instructions';
+                showScreen('instructions');
+            }
+
+            function runTrial() {
+                if (currentTrialNum >= TOTAL_TRIALS) {
+                    endGame();
+                    return;
+                }
+                
+                gameState = 'fixation';
+                stimulusDisplay.style.display = 'none';
+                fixationCross.style.display = 'block';
+
+                setTimeout(showStimulus, FIXATION_DURATION);
+            }
+
+            function showStimulus() {
+                currentTrialNum++;
+                gameState = 'stimulus';
+                canRespond = true;
+
+                // Generate trial properties
+                const color = Math.random() < 0.7 ? 'blue' : 'red'; // More blue trials typically
+                const centerDir = Math.random() < 0.5 ? 'left' : 'right';
+                const sideDir = Math.random() < 0.5 ? 'left' : 'right';
+                const correctAnswer = (color === 'red') ? sideDir : centerDir;
+
+                currentTrial = { color, correctAnswer };
+
+                // Build arrow string
+                const sideArrow = sideDir === 'left' ? '←' : '→';
+                const centerArrow = centerDir === 'left' ? '←' : '→';
+                stimulusDisplay.innerHTML = `${sideArrow}${sideArrow}${centerArrow}${sideArrow}${sideArrow}`;
+                stimulusDisplay.style.color = (color === 'blue') ? 'var(--blue-color)' : 'var(--red-color)';
+
+                // Update totals
+                if (color === 'blue') totalBlue++;
+                else totalRed++;
+
+                fixationCross.style.display = 'none';
+                stimulusDisplay.style.display = 'block';
+
+                trialTimeout = setTimeout(() => {
+                    canRespond = false;
+                    runTrial(); // Time ran out, count as incorrect, move on
+                }, STIMULUS_DURATION);
+            }
+
+            function handleKeyPress(e) {
+                if (!canRespond || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return;
+                
+                canRespond = false;
+                clearTimeout(trialTimeout);
+
+                const userAnswer = e.key === 'ArrowLeft' ? 'left' : 'right';
+                const isCorrect = userAnswer === currentTrial.correctAnswer;
+
+                if (isCorrect) {
+                    if (currentTrial.color === 'blue') correctBlue++;
+                    else correctRed++;
+                }
+                
+                runTrial(); // Move to the next trial immediately
+            }
+
+            function endGame() {
+                gameState = 'finished';
+                totalCorrectValue.textContent = `${correctBlue + correctRed} / ${TOTAL_TRIALS}`;
+                blueCorrectValue.textContent = `${correctBlue} / ${totalBlue}`;
+                redCorrectValue.textContent = `${correctRed} / ${totalRed}`;
+                showScreen('results');
+            }
+
+            // --- Event Listeners ---
+            startBtn.addEventListener('click', () => {
+                showScreen('game');
+                runTrial();
+            });
+            document.addEventListener('keydown', handleKeyPress);
+            nextBtn.addEventListener('click', initGame);
+            menuBtn.addEventListener('click', initGame);
+            
+            // --- Initialise ---
+            initGame();
+        });
+    </script>
+</body>
+</html>

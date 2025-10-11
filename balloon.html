@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pymetrics - Advanced Balloon Game</title>
+    <style>
+        /* CSS Styling */
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+
+        :root {
+            --bg-color: #f0f4f8;
+            --primary-color: #3498db;
+            --secondary-color: #2ecc71;
+            --dark-color: #2c3e50;
+            --light-color: #ffffff;
+            --shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            /* This variable will be changed by JS for the balloon color */
+            --balloon-color: #e74c3c; 
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: var(--bg-color);
+            color: var(--dark-color);
+            text-align: center;
+        }
+
+        .game-container {
+            width: 90%;
+            max-width: 450px;
+            background: var(--light-color);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow: hidden;
+        }
+
+        h1 {
+            margin-top: 0;
+            color: var(--primary-color);
+        }
+        
+        h1 span {
+            font-size: 0.7em;
+            color: #7f8c8d;
+        }
+
+        .score-display {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 25px;
+            font-size: 1.1em;
+        }
+
+        .score-box {
+            background: #ecf0f1;
+            padding: 10px 20px;
+            border-radius: 8px;
+            width: 45%;
+        }
+
+        .score-box h3 {
+            margin: 0 0 5px 0;
+            font-size: 0.9em;
+            color: #7f8c8d;
+        }
+
+        .score-box p {
+            margin: 0;
+            font-size: 1.5em;
+            font-weight: 600;
+        }
+
+        .balloon-area {
+            height: 200px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 25px;
+            position: relative;
+        }
+        
+        #balloon {
+            width: 50px;
+            height: 70px;
+            background-color: var(--balloon-color);
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+            transform: scale(1);
+            transition: transform 0.2s ease-out, opacity 0.2s ease-out, background-color 0.5s ease;
+            cursor: pointer;
+            position: relative;
+        }
+        
+        #balloon::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-top: 10px solid var(--balloon-color);
+            transition: border-top-color 0.5s ease;
+        }
+
+        .pop-effect {
+            position: absolute;
+            font-size: 4em;
+            font-weight: 600;
+            color: var(--balloon-color);
+            opacity: 0;
+            transform: scale(0.5);
+            transition: color 0.5s ease;
+        }
+        
+        .pop-effect.animate {
+            animation: popAnimation 0.5s ease-out forwards;
+        }
+
+        @keyframes popAnimation {
+            0% { opacity: 1; transform: scale(0.5); }
+            100% { opacity: 0; transform: scale(2); }
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-around;
+            gap: 15px;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            font-size: 1em;
+            font-weight: 600;
+            font-family: 'Poppins', sans-serif;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        
+        button:disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        #pump-btn {
+            background-color: var(--primary-color);
+            color: var(--light-color);
+        }
+
+        #pump-btn:not(:disabled):hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        #collect-btn {
+            background-color: var(--secondary-color);
+            color: var(--light-color);
+        }
+        
+        #collect-btn:not(:disabled):hover {
+            background-color: #27ae60;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .message {
+            margin-top: 20px;
+            font-size: 1.1em;
+            font-weight: 600;
+            height: 25px;
+        }
+        
+        #message-text {
+            color: #e74c3c;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        #message-text.collected {
+            color: var(--secondary-color);
+        }
+
+        #message-text.visible {
+            opacity: 1;
+        }
+        
+        #final-score-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.5s ease, visibility 0.5s ease;
+        }
+
+        #final-score-screen.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        #final-score-screen h2 {
+            font-size: 2em;
+        }
+        #final-score-screen p {
+            font-size: 1.5em;
+            margin-bottom: 15px;
+        }
+        #final-score-screen .balloons-collected {
+            font-size: 1.1em;
+            margin-bottom: 30px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="game-container">
+        <h1>Balloon Game <span id="balloon-counter"></span></h1>
+        <div class="score-display">
+            <div class="score-box">
+                <h3>TOTAL EARNED</h3>
+                <p id="total-earnings">$0.00</p>
+            </div>
+            <div class="score-box">
+                <h3>POTENTIAL GAIN</h3>
+                <p id="current-gain">$0.00</p>
+            </div>
+        </div>
+        
+        <div class="balloon-area">
+            <div id="pop-effect" class="pop-effect">POP!</div>
+            <div id="balloon"></div>
+        </div>
+        
+        <div class="controls">
+            <button id="pump-btn">Pump Balloon</button>
+            <button id="collect-btn">Collect Money</button>
+        </div>
+
+        <div class="message">
+            <p id="message-text">Balloon Popped!</p>
+        </div>
+        
+        <div id="final-score-screen">
+            <h2>Game Over!</h2>
+            <p>Total money earned: <span id="final-score"></span></p>
+            <p class="balloons-collected">You collected <span id="balloons-collected-count"></span> balloons.</p>
+            <button id="play-again-btn">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- DOM Elements ---
+            const gameContainer = document.querySelector('.game-container');
+            const balloonCounter = document.getElementById('balloon-counter');
+            const popEffect = document.getElementById('pop-effect');
+            const pumpBtn = document.getElementById('pump-btn');
+            const collectBtn = document.getElementById('collect-btn');
+            const totalEarningsDisplay = document.getElementById('total-earnings');
+            const currentGainDisplay = document.getElementById('current-gain');
+            const messageText = document.getElementById('message-text');
+            const finalScoreScreen = document.getElementById('final-score-screen');
+            const finalScoreDisplay = document.getElementById('final-score');
+            const balloonsCollectedDisplay = document.getElementById('balloons-collected-count');
+            const playAgainBtn = document.getElementById('play-again-btn');
+
+            // --- Game Configuration ---
+            const PUMP_VALUE = 0.25;
+            const MAX_BALLOONS = 39;
+            const COLORS = [
+                { name: 'blue', code: '#3498db', minPumps: 1, maxPumps: 6 },    // High risk
+                { name: 'red', code: '#e74c3c', minPumps: 4, maxPumps: 12 },   // Medium risk
+                { name: 'yellow', code: '#f1c40f', minPumps: 5, maxPumps: 15 }, // Low-Medium risk
+                { name: 'green', code: '#2ecc71', minPumps: 8, maxPumps: 20 },  // Low risk
+            ];
+
+            // --- Game State Variables ---
+            let totalEarnings = 0;
+            let currentGain = 0;
+            let pumpCount = 0;
+            let balloonsCollected = 0;
+            let maxPumps;
+            let balloonNumber = 0;
+            let currentColor;
+
+            // --- Game Functions ---
+
+            function startGame() {
+                totalEarnings = 0;
+                balloonsCollected = 0;
+                balloonNumber = 0;
+                finalScoreScreen.classList.remove('visible');
+                nextBalloon();
+            }
+            
+            function nextBalloon() {
+                if (balloonNumber >= MAX_BALLOONS) {
+                    endGame();
+                    return;
+                }
+                
+                balloonNumber++;
+                updateDisplays();
+
+                // Reset for the new balloon
+                currentGain = 0;
+                pumpCount = 0;
+                
+                // --- NEW: Select a random color and set its properties ---
+                currentColor = COLORS[Math.floor(Math.random() * COLORS.length)];
+                maxPumps = Math.floor(Math.random() * (currentColor.maxPumps - currentColor.minPumps + 1)) + currentColor.minPumps;
+                console.log(`Balloon #${balloonNumber} is ${currentColor.name}. It will pop after ${maxPumps} pumps.`);
+                
+                // Update CSS variable for color
+                gameContainer.style.setProperty('--balloon-color', currentColor.code);
+                
+                // Reset visuals and enable controls
+                document.getElementById('balloon').style.transform = 'scale(1)';
+                document.getElementById('balloon').style.opacity = 1;
+                messageText.classList.remove('visible', 'collected');
+                setButtonsState(false);
+            }
+
+            function pumpBalloon() {
+                pumpCount++;
+                currentGain += PUMP_VALUE;
+                
+                const currentScale = 1 + (pumpCount * 0.15);
+                document.getElementById('balloon').style.transform = `scale(${currentScale})`;
+                
+                updateDisplays();
+
+                if (pumpCount >= maxPumps) {
+                    popBalloon();
+                }
+            }
+
+            function popBalloon() {
+                setButtonsState(true);
+                
+                document.getElementById('balloon').style.opacity = 0;
+                popEffect.classList.add('animate');
+                
+                showMessage('Balloon Popped!', false);
+                
+                currentGain = 0;
+                updateDisplays();
+
+                setTimeout(() => {
+                    popEffect.classList.remove('animate');
+                    nextBalloon();
+                }, 1500);
+            }
+
+            function collectMoney() {
+                if (currentGain > 0) {
+                    totalEarnings += currentGain;
+                    balloonsCollected++; // Increment collected count
+                    showMessage(`Collected $${currentGain.toFixed(2)}!`, true);
+                    currentGain = 0;
+                    updateDisplays();
+                }
+                setButtonsState(true);
+                setTimeout(nextBalloon, 1500);
+            }
+            
+            function updateDisplays() {
+                balloonCounter.textContent = `(${balloonNumber}/${MAX_BALLOONS})`;
+                totalEarningsDisplay.textContent = `$${totalEarnings.toFixed(2)}`;
+                currentGainDisplay.textContent = `$${currentGain.toFixed(2)}`;
+            }
+
+            function setButtonsState(disabled) {
+                pumpBtn.disabled = disabled;
+                collectBtn.disabled = disabled;
+            }
+            
+            function showMessage(msg, isSuccess) {
+                messageText.textContent = msg;
+                messageText.className = 'visible';
+                if (isSuccess) {
+                    messageText.classList.add('collected');
+                }
+            }
+            
+            function endGame() {
+                finalScoreDisplay.textContent = `$${totalEarnings.toFixed(2)}`;
+                balloonsCollectedDisplay.textContent = `${balloonsCollected} / ${MAX_BALLOONS}`;
+                finalScoreScreen.classList.add('visible');
+            }
+
+            // --- Event Listeners ---
+            pumpBtn.addEventListener('click', pumpBalloon);
+            collectBtn.addEventListener('click', collectMoney);
+            playAgainBtn.addEventListener('click', startGame);
+
+            // --- Initialise Game ---
+            startGame();
+        });
+    </script>
+
+</body>
+</html>

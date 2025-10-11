@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pymetrics - Keypress Speed Game</title>
+    <style>
+        /* CSS Styling */
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+
+        :root {
+            --bg-color: #27ae60; /* Green background */
+            --container-bg: #ffffff;
+            --primary-text: #2c3e50;
+            --secondary-text: #7f8c8d;
+            --highlight-bg: #34495e;
+            --highlight-text: #ffffff;
+            --shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: var(--bg-color);
+            color: var(--primary-text);
+            text-align: center;
+        }
+
+        .game-container {
+            width: 90%;
+            max-width: 600px;
+            background: var(--container-bg);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+            position: relative;
+            height: 400px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* --- Screens --- */
+        .screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .screen.visible {
+            display: flex;
+        }
+
+        /* Instruction Screen */
+        #instructions-screen h1 {
+            background: #f39c12;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 1.2em;
+            margin-top: 0;
+            margin-bottom: 30px;
+            display: inline-block;
+        }
+
+        #instructions-screen p {
+            font-size: 1.1em;
+            line-height: 1.7;
+            margin: 15px 0;
+        }
+        
+        #instructions-screen .spacebar {
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 5px;
+            background: var(--highlight-bg);
+            color: var(--highlight-text);
+            font-family: monospace;
+        }
+        
+        #start-btn {
+             margin-top: 30px;
+        }
+
+        /* Countdown & Game Screen */
+        #message-display {
+            font-size: 10em;
+            font-weight: 700;
+            color: var(--primary-text);
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        #timer-display, #keypress-display {
+            position: absolute;
+            top: 20px;
+            font-size: 1.5em;
+            font-weight: 600;
+            background: #ecf0f1;
+            padding: 5px 15px;
+            border-radius: 10px;
+        }
+        
+        #timer-display { right: 20px; }
+        #keypress-display { left: 20px; }
+
+        /* Results Screen */
+        #results-screen h2 {
+            font-size: 2em;
+            color: var(--secondary-text);
+            margin-bottom: 10px;
+        }
+        
+        #final-score {
+            font-size: 6em;
+            font-weight: 700;
+            color: var(--primary-text);
+            margin-bottom: 10px;
+        }
+        
+        #results-screen p {
+            font-size: 1.2em;
+            margin-bottom: 30px;
+        }
+
+        /* General Button */
+        button {
+            padding: 15px 40px;
+            font-size: 1.2em;
+            font-weight: 600;
+            font-family: 'Poppins', sans-serif;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+            background-color: var(--bg-color);
+            color: var(--container-bg);
+        }
+
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 12px rgba(0, 0, 0, 0.2);
+            filter: brightness(1.1);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="game-container">
+        
+        <div id="instructions-screen" class="screen visible">
+            <h1>📝 Instructions</h1>
+            <p>You will be presented with a countdown timer.</p>
+            <p>When the message "GO!" appears, repeatedly hit the <span class="spacebar">spacebar</span> as fast as you can until you are told to stop.</p>
+            <button id="start-btn">I'm Ready</button>
+        </div>
+
+        <div id="game-screen" class="screen">
+            <div id="timer-display">10.0s</div>
+            <div id="keypress-display">0</div>
+            <div id="message-display">3</div>
+        </div>
+
+        <div id="results-screen" class="screen">
+            <h2>Your Score</h2>
+            <p id="final-score">0</p>
+            <p>Total Keypresses</p>
+            <button id="play-again-btn">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- DOM Elements ---
+            const screens = {
+                instructions: document.getElementById('instructions-screen'),
+                game: document.getElementById('game-screen'),
+                results: document.getElementById('results-screen'),
+            };
+            const startBtn = document.getElementById('start-btn');
+            const playAgainBtn = document.getElementById('play-again-btn');
+            const messageDisplay = document.getElementById('message-display');
+            const timerDisplay = document.getElementById('timer-display');
+            const keypressDisplay = document.getElementById('keypress-display');
+            const finalScoreDisplay = document.getElementById('final-score');
+
+            // --- Game Configuration ---
+            const GAME_DURATION_MS = 10000; // 10 seconds
+
+            // --- Game State Variables ---
+            let gameState = 'instructions'; // instructions, countdown, playing, finished
+            let keypressCount = 0;
+            let gameInterval;
+
+            // --- Game Logic ---
+            function showScreen(screenName) {
+                Object.values(screens).forEach(screen => screen.classList.remove('visible'));
+                screens[screenName].classList.add('visible');
+            }
+            
+            function initGame() {
+                keypressCount = 0;
+                keypressDisplay.textContent = '0';
+                gameState = 'instructions';
+                showScreen('instructions');
+            }
+
+            function startCountdown() {
+                gameState = 'countdown';
+                showScreen('game');
+                
+                let count = 3;
+                messageDisplay.textContent = count;
+                
+                const countdownInterval = setInterval(() => {
+                    count--;
+                    if (count > 0) {
+                        messageDisplay.textContent = count;
+                    } else {
+                        clearInterval(countdownInterval);
+                        startGame();
+                    }
+                }, 1000);
+            }
+
+            function startGame() {
+                gameState = 'playing';
+                keypressCount = 0;
+                keypressDisplay.textContent = '0';
+                messageDisplay.textContent = 'GO!';
+                
+                let timeLeft = GAME_DURATION_MS;
+                timerDisplay.textContent = (timeLeft / 1000).toFixed(1) + 's';
+
+                gameInterval = setInterval(() => {
+                    timeLeft -= 100;
+                    timerDisplay.textContent = (timeLeft / 1000).toFixed(1) + 's';
+
+                    if (timeLeft <= 0) {
+                        endGame();
+                    }
+                }, 100);
+            }
+            
+            function handleKeyPress(event) {
+                if (gameState === 'playing' && event.code === 'Space') {
+                    event.preventDefault(); // prevent page scrolling
+                    keypressCount++;
+                    keypressDisplay.textContent = keypressCount;
+                }
+            }
+
+            function endGame() {
+                clearInterval(gameInterval);
+                gameState = 'finished';
+                messageDisplay.textContent = 'STOP!';
+                timerDisplay.textContent = '0.0s';
+                
+                setTimeout(() => {
+                    showResults();
+                }, 1500); // Show "STOP!" for a moment before results
+            }
+            
+            function showResults() {
+                finalScoreDisplay.textContent = keypressCount;
+                showScreen('results');
+            }
+
+            // --- Event Listeners ---
+            startBtn.addEventListener('click', startCountdown);
+            playAgainBtn.addEventListener('click', initGame);
+            document.addEventListener('keydown', handleKeyPress);
+            
+            // --- Initialise ---
+            initGame();
+        });
+    </script>
+</body>
+</html>

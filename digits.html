@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pymetrics - Digits Game (Keyboard Input)</title>
+    <style>
+        /* CSS Styling */
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+
+        :root {
+            --bg-color: #27ae60;
+            --container-bg: #ffffff;
+            --primary-text: #2c3e50;
+            --secondary-text: #7f8c8d;
+            --success-color: #2ecc71;
+            --danger-color: #e74c3c;
+            --input-bg: #ecf0f1;
+            --shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: var(--bg-color);
+            color: var(--primary-text);
+            text-align: center;
+        }
+
+        .game-container {
+            width: 90%;
+            background: var(--container-bg);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+            position: relative;
+            min-height: 500px; /* Adjusted height */
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        /* --- Screens --- */
+        .screen { display: none; flex-direction: column; align-items: center; justify-content: center; flex-grow: 1; }
+        .screen.visible { display: flex; }
+
+        /* Instructions Screen */
+        #instructions-screen h1 { background: #f39c12; color: white; padding: 5px 15px; border-radius: 20px; font-size: 1.2em; margin-top: 0; margin-bottom: 20px; }
+        #instructions-screen ul { text-align: left; padding-left: 20px; font-size: 1.0em; line-height: 1.8; }
+        #instructions-screen ul li::marker { color: var(--bg-color); }
+
+        /* Game Screen */
+        #game-screen { justify-content: space-between; }
+        .game-header { width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        #error-tracker { display: flex; gap: 8px; }
+        .error-dot { width: 20px; height: 20px; border-radius: 50%; background-color: var(--input-bg); transition: background-color 0.3s ease; }
+        .error-dot.wrong { background-color: var(--danger-color); }
+        #level-display { font-size: 1.2em; font-weight: 600; color: var(--secondary-text); }
+
+        #stimulus-area {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 8em;
+            font-weight: 700;
+            width: 100%;
+            height: 150px;
+            position: relative;
+        }
+
+        #digit-display { position: absolute; animation: fadeIn 0.3s; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        
+        #feedback-display { position: absolute; font-size: 1.5em; font-weight: 600; opacity: 0; transition: opacity 0.3s ease; }
+        #feedback-display.correct { color: var(--success-color); }
+        #feedback-display.incorrect { color: var(--danger-color); }
+
+        /* NEW: Input Field Styling */
+        #user-input-field {
+            width: 100%;
+            height: 70px;
+            background: var(--input-bg);
+            border: 2px solid var(--input-bg);
+            border-radius: 10px;
+            font-size: 2.5em;
+            letter-spacing: 5px;
+            text-align: center;
+            margin-top: auto; /* Push to the bottom */
+            font-family: monospace;
+            outline: none;
+            transition: border-color 0.3s ease;
+            visibility: hidden; /* Hidden by default */
+        }
+        #user-input-field:focus {
+            border-color: var(--bg-color);
+        }
+        
+        /* Results Screen */
+        #results-screen h2 { font-size: 2em; color: var(--secondary-text); margin-bottom: 10px; }
+        #final-score { font-size: 6em; font-weight: 700; color: var(--primary-text); margin-bottom: 10px; }
+        #results-screen p { font-size: 1.2em; margin-bottom: 30px; }
+
+        /* General Button */
+        .primary-btn { padding: 15px 40px; font-size: 1.2em; font-weight: 600; border: none; border-radius: 10px; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1); background-color: var(--bg-color); color: var(--container-bg); margin-top: 20px; }
+        .primary-btn:hover { transform: translateY(-3px); box-shadow: 0 5px 12px rgba(0, 0, 0, 0.2); filter: brightness(1.1); }
+    </style>
+</head>
+<body>
+
+    <div class="game-container">
+        
+        <div id="instructions-screen" class="screen visible">
+            <h1>📝 Instructions</h1>
+            <ul>
+                <li>A sequence of numbers will flash on the screen.</li>
+                <li>Remember the sequence and enter it using your keyboard.</li>
+                <li>Press <strong>Enter</strong> to submit your answer.</li>
+                <li>The game ends after <strong>3 wrong rounds</strong>.</li>
+            </ul>
+            <button id="start-btn" class="primary-btn">Start Game</button>
+        </div>
+
+        <div id="game-screen" class="screen">
+            <div class="game-header">
+                <div id="error-tracker">
+                    <div class="error-dot"></div><div class="error-dot"></div><div class="error-dot"></div>
+                </div>
+                <div id="level-display">Length: 4</div>
+            </div>
+            <div id="stimulus-area">
+                <div id="digit-display"></div>
+                <div id="feedback-display">Correct!</div>
+            </div>
+            <input type="tel" id="user-input-field" autocomplete="off" placeholder="Type here...">
+        </div>
+
+        <div id="results-screen" class="screen">
+            <h2>Game Over</h2>
+            <p id="final-score">0</p>
+            <p>Longest Sequence Remembered</p>
+            <button id="play-again-btn" class="primary-btn">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- DOM Elements ---
+            const screens = { instructions: document.getElementById('instructions-screen'), game: document.getElementById('game-screen'), results: document.getElementById('results-screen') };
+            const startBtn = document.getElementById('start-btn');
+            const playAgainBtn = document.getElementById('play-again-btn');
+            const levelDisplay = document.getElementById('level-display');
+            const errorDots = document.querySelectorAll('.error-dot');
+            const digitDisplay = document.getElementById('digit-display');
+            const feedbackDisplay = document.getElementById('feedback-display');
+            const userInputField = document.getElementById('user-input-field'); // MODIFIED: Input field
+            const finalScoreDisplay = document.getElementById('final-score');
+
+            // --- Game Config ---
+            const STARTING_LEVEL = 4;
+            const MAX_ERRORS = 3;
+            const DIGIT_VISIBLE_MS = 600;
+            const DIGIT_HIDDEN_MS = 300;
+
+            // --- Game State ---
+            let gameState = 'instructions'; 
+            let currentLevel = STARTING_LEVEL;
+            let maxLevelAchieved = 0;
+            let errors = 0;
+            let currentSequence = [];
+
+            // --- Game Functions ---
+            function showScreen(screenName) {
+                Object.values(screens).forEach(screen => screen.classList.remove('visible'));
+                screens[screenName].classList.add('visible');
+            }
+
+            function initGame() {
+                gameState = 'instructions';
+                currentLevel = STARTING_LEVEL;
+                maxLevelAchieved = 0;
+                errors = 0;
+                userInputField.value = '';
+                userInputField.style.visibility = 'hidden';
+                updateUI();
+                showScreen('instructions');
+            }
+
+            function startRound() {
+                gameState = 'memorizing';
+                userInputField.value = '';
+                userInputField.style.visibility = 'hidden';
+                userInputField.disabled = true;
+                updateUI();
+                generateSequence();
+                displaySequence();
+            }
+
+            function generateSequence() {
+                currentSequence = [];
+                for (let i = 0; i < currentLevel; i++) {
+                    currentSequence.push(Math.floor(Math.random() * 10));
+                }
+            }
+
+            function displaySequence() {
+                let index = 0;
+                digitDisplay.textContent = '';
+                
+                const interval = setInterval(() => {
+                    if (index < currentSequence.length) {
+                        digitDisplay.textContent = currentSequence[index];
+                        setTimeout(() => {
+                            if (gameState === 'memorizing') digitDisplay.textContent = '';
+                        }, DIGIT_VISIBLE_MS);
+                        index++;
+                    } else {
+                        clearInterval(interval);
+                        startInputPhase();
+                    }
+                }, DIGIT_VISIBLE_MS + DIGIT_HIDDEN_MS);
+            }
+            
+            function startInputPhase() {
+                gameState = 'input';
+                digitDisplay.textContent = ''; // Clear display for input
+                userInputField.style.visibility = 'visible';
+                userInputField.disabled = false;
+                userInputField.focus();
+            }
+
+            // MODIFIED: Handle submission via Enter key
+            function handleEnterPress(event) {
+                if (gameState === 'input' && event.key === 'Enter') {
+                    handleSubmit();
+                }
+            }
+            
+            function handleSubmit() {
+                const userInput = userInputField.value;
+                if (userInput.length === 0) return;
+                
+                const isCorrect = currentSequence.join('') === userInput;
+                gameState = 'feedback';
+                userInputField.disabled = true;
+                
+                if (isCorrect) {
+                    showFeedback('Correct!', true);
+                    if (currentLevel > maxLevelAchieved) {
+                        maxLevelAchieved = currentLevel;
+                    }
+                    currentLevel++;
+                } else {
+                    errors++;
+                    showFeedback('Incorrect!', false);
+                    if (currentLevel > 1) { 
+                        currentLevel--;
+                    }
+                }
+                
+                updateUI();
+                
+                if (errors >= MAX_ERRORS) {
+                    setTimeout(endGame, 1500);
+                } else {
+                    setTimeout(startRound, 1500);
+                }
+            }
+            
+            function showFeedback(message, isCorrect) {
+                digitDisplay.textContent = '';
+                feedbackDisplay.textContent = message;
+                feedbackDisplay.className = isCorrect ? 'correct' : 'incorrect';
+                feedbackDisplay.style.opacity = 1;
+
+                setTimeout(() => {
+                    feedbackDisplay.style.opacity = 0;
+                }, 1200);
+            }
+            
+            function endGame() {
+                gameState = 'finished';
+                finalScoreDisplay.textContent = maxLevelAchieved > 0 ? maxLevelAchieved : STARTING_LEVEL -1;
+                showScreen('results');
+            }
+
+            function updateUI() {
+                levelDisplay.textContent = `Length: ${currentLevel}`;
+                errorDots.forEach((dot, index) => {
+                    dot.classList.toggle('wrong', index < errors);
+                });
+            }
+
+            // --- Event Listeners ---
+            startBtn.addEventListener('click', () => {
+                showScreen('game');
+                startRound();
+            });
+            playAgainBtn.addEventListener('click', initGame);
+            userInputField.addEventListener('keydown', handleEnterPress); // MODIFIED
+            
+            // --- Initialise ---
+            initGame();
+        });
+    </script>
+</body>
+</html>

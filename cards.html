@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pymetrics - Cards Game</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+
+        :root {
+            --bg-color: #ffffff;
+            --container-bg: #f9f9f9;
+            --primary-text: #2c3e50;
+            --secondary-text: #7f8c8d;
+            --win-color: #27ae60;
+            --loss-color: #c0392b;
+            --bar-bg: #ecf0f1;
+            --shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: var(--bg-color);
+            color: var(--primary-text);
+            text-align: center;
+        }
+
+        .game-wrapper {
+            width: 100%;
+            max-width: 800px;
+        }
+        
+        .instructions-container {
+            background: var(--win-color);
+            color: white;
+            padding: 40px;
+            border-radius: 15px;
+        }
+        .instructions-container p { font-size: 1.2em; line-height: 1.8; }
+        .instructions-container .deck-icon { display: inline-block; width: 20px; height: 30px; background: white; border: 1px solid #bdc3c7; border-radius: 3px; vertical-align: middle; margin: 0 5px; }
+        .instructions-container button {
+            padding: 15px 50px; font-size: 1.3em; font-weight: 600; border: none; border-radius: 10px; cursor: pointer; transition: all 0.2s ease;
+            background-color: white; color: var(--win-color); margin-top: 20px;
+        }
+        .instructions-container button:hover { transform: scale(1.05); }
+
+        .game-container {
+            background: var(--container-bg);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: var(--shadow);
+            position: relative;
+            min-height: 600px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .screen { display: none; flex-direction: column; align-items: center; flex-grow: 1; width: 100%; height: 100%; }
+        .screen.visible { display: flex; animation: fadeIn 0.5s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* Game Screen */
+        .stats-area { width: 100%; margin-bottom: 20px; }
+        .stat-bar-container { display: flex; align-items: center; margin-bottom: 10px; }
+        .stat-bar-container label { width: 80px; text-align: left; font-weight: 600; color: var(--secondary-text); }
+        .bar { flex-grow: 1; height: 15px; background: var(--bar-bg); border-radius: 10px; overflow: hidden; }
+        .bar-inner { height: 100%; width: 0%; transition: width 0.5s ease; }
+        #money-bar-inner { background: linear-gradient(90deg, #3498db, #2ecc71); }
+        #gains-bar-inner { background: var(--win-color); }
+        #losses-bar-inner { background: var(--loss-color); }
+        #money-value { margin-left: 20px; font-size: 1.2em; font-weight: 700; width: 120px; text-align: right; }
+
+        .play-area { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 250px; }
+        #message { font-size: 1.8em; font-weight: 600; height: 40px; }
+        #message.win { color: var(--win-color); }
+        #message.loss { color: var(--loss-color); }
+        .card { width: 120px; height: 180px; border: 2px solid var(--primary-text); border-radius: 10px; background: white;
+            display: flex; flex-direction: column; justify-content: space-between; padding: 10px; font-size: 2.5em;
+            font-weight: 700; visibility: hidden; }
+        .card.red { color: var(--loss-color); }
+        .card.black { color: var(--primary-text); }
+        .card .rank { text-align: left; }
+        .card .suit { font-size: 1.5em; text-align: center; }
+        .card .rank.bottom { transform: rotate(180deg); }
+
+        .decks-container { display: flex; justify-content: center; gap: 20px; margin-top: auto; padding-top: 20px; }
+        .deck { width: 100px; height: 150px; background: linear-gradient(135deg, #2ecc71, #27ae60);
+            border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.2); border-radius: 8px; cursor: pointer; transition: all 0.2s ease; }
+        .deck:hover { transform: translateY(-5px) scale(1.03); }
+
+        /* MODIFIED: End Game Screen Styling */
+        #end-game-screen { align-items: flex-start; text-align: left; }
+        #end-game-screen h2 { width: 100%; text-align: center; font-size: 1.8em; margin-bottom: 30px; }
+        .results-summary p { font-size: 1.1em; margin: 12px 0; color: var(--secondary-text); }
+        .results-summary strong { color: var(--primary-text); }
+        .button-container { display: flex; justify-content: space-between; width: 100%; margin-top: auto; }
+        .end-button { padding: 12px 30px; font-size: 1.1em; font-weight: 600; border-radius: 8px; border: none; cursor: pointer; background: #BDC3C7; color: #fff; transition: background-color 0.2s; }
+        .end-button:hover { background-color: #a9afb3; }
+
+    </style>
+</head>
+<body>
+
+    <div class="game-wrapper">
+        
+        <div id="instructions-screen" class="screen visible instructions-container">
+            <h1>Instructions</h1>
+            <p>The goal of this game is to win as much money as possible by drawing cards.</p>
+            <p>Some cards <span class="deck-icon"></span> will earn you a reward, but some <span class="deck-icon"></span> will have a penalty.</p>
+            <p>You will start with a $2000 loan.</p>
+            <p>Click on any of the four decks to draw a card. You can switch decks at any time.</p>
+            <button id="start-btn">Begin</button>
+        </div>
+
+        <div id="game-screen" class="screen game-container">
+            <div class="stats-area">
+                <div class="stat-bar-container"><label>Money</label><div class="bar"><div id="money-bar-inner" class="bar-inner"></div></div><span id="money-value">$2000</span></div>
+                <div class="stat-bar-container"><label>Gains</label><div class="bar"><div id="gains-bar-inner" class="bar-inner"></div></div></div>
+                <div class="stat-bar-container"><label>Losses</label><div class="bar"><div id="losses-bar-inner" class="bar-inner"></div></div></div>
+            </div>
+            <div class="play-area">
+                <p id="message"></p>
+                <div class="card black" id="card-display"><span class="rank"></span><span class="suit"></span><span class="rank bottom"></span></div>
+            </div>
+            <div class="decks-container" id="decks-container">
+                <div class="deck" data-deck-id="0"></div><div class="deck" data-deck-id="1"></div><div class="deck" data-deck-id="2"></div><div class="deck" data-deck-id="3"></div>
+            </div>
+            <p id="draws-left" style="margin-top: 15px; color: var(--secondary-text); font-weight: 600;"></p>
+        </div>
+
+        <div id="end-game-screen" class="screen game-container">
+            <h2>Game Complete</h2>
+            <div class="results-summary">
+                <p>You have completed this game.</p>
+                <p><strong>Total Score:</strong> $<span id="final-score-value"></span></p>
+                <p><strong>Total Gained:</strong> $<span id="total-gained-value"></span></p>
+                <p><strong>Total Lost:</strong> $<span id="total-lost-value"></span></p>
+                <p>Click the next button to move on to the next game.</p>
+            </div>
+            <div class="button-container">
+                <button class="end-button" id="next-btn">Next</button>
+                <button class="end-button" id="menu-btn">Back To Menu</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- DOM Elements ---
+            const screens = { instructions: document.getElementById('instructions-screen'), game: document.getElementById('game-screen'), endGame: document.getElementById('end-game-screen') };
+            const startBtn = document.getElementById('start-btn');
+            const moneyValue = document.getElementById('money-value');
+            const moneyBar = document.getElementById('money-bar-inner');
+            const gainsBar = document.getElementById('gains-bar-inner');
+            const lossesBar = document.getElementById('losses-bar-inner');
+            const message = document.getElementById('message');
+            const cardDisplay = document.getElementById('card-display');
+            const decksContainer = document.getElementById('decks-container');
+            const drawsLeftText = document.getElementById('draws-left');
+            // End Screen Elements
+            const finalScoreValue = document.getElementById('final-score-value');
+            const totalGainedValue = document.getElementById('total-gained-value');
+            const totalLostValue = document.getElementById('total-lost-value');
+            const nextBtn = document.getElementById('next-btn');
+            const menuBtn = document.getElementById('menu-btn');
+
+            // --- Game Config ---
+            const STARTING_MONEY = 2000;
+            const TOTAL_DRAWS = 50;
+            const DECK_PROFILES = [
+                { outcomes: [100, 100, 100, 100, 100, -250, -250, -250, -250, -250] },
+                { outcomes: [100, 100, 100, 100, -1250, 100, 100, 100, 100, -1250] },
+                { outcomes: [50, 50, 50, 50, 50, 50, 50, 50, 50, -50] },
+                { outcomes: [50, 50, 50, 50, -250, 50, 50, 50, 50, 50] }
+            ];
+            const CARD_VISUALS = {
+                ranks: ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'],
+                suits: [{name: '♣', color: 'black'}, {name: '♦', color: 'red'}, {name: '♥', color: 'red'}, {name: '♠', color: 'black'}]
+            };
+
+            // --- Game State ---
+            let totalMoney, totalGains, totalLosses, drawsLeft;
+
+            function showScreen(screenName) {
+                Object.values(screens).forEach(screen => screen.classList.remove('visible'));
+                screens[screenName].classList.add('visible');
+            }
+
+            function initGame() {
+                totalMoney = STARTING_MONEY;
+                totalGains = 0;
+                totalLosses = 0;
+                drawsLeft = TOTAL_DRAWS;
+                cardDisplay.style.visibility = 'hidden';
+                message.textContent = '';
+                updateStatsUI();
+                showScreen('instructions');
+            }
+
+            function startGame() { showScreen('game'); }
+
+            function handleDeckClick(e) {
+                if (!e.target.classList.contains('deck') || drawsLeft <= 0) return;
+                const deckId = parseInt(e.target.dataset.deckId);
+                const deck = DECK_PROFILES[deckId];
+                const outcome = deck.outcomes[Math.floor(Math.random() * deck.outcomes.length)];
+
+                totalMoney += outcome;
+                if (outcome > 0) {
+                    totalGains += outcome;
+                    message.textContent = `You won $${outcome}!`;
+                    message.className = 'win';
+                } else {
+                    totalLosses += Math.abs(outcome);
+                    message.textContent = `You lost $${Math.abs(outcome)}.`;
+                    message.className = 'loss';
+                }
+                drawsLeft--;
+                updateStatsUI();
+                showRandomCard();
+                if (drawsLeft <= 0) { setTimeout(endGame, 1500); }
+            }
+            
+            function showRandomCard() {
+                const rank = CARD_VISUALS.ranks[Math.floor(Math.random() * CARD_VISUALS.ranks.length)];
+                const suit = CARD_VISUALS.suits[Math.floor(Math.random() * CARD_VISUALS.suits.length)];
+                cardDisplay.className = `card ${suit.color}`;
+                cardDisplay.querySelectorAll('.rank').forEach(r => r.textContent = rank);
+                cardDisplay.querySelector('.suit').textContent = suit.name;
+                cardDisplay.style.visibility = 'visible';
+            }
+
+            function updateStatsUI() {
+                moneyValue.textContent = `$${totalMoney}`;
+                drawsLeftText.textContent = `${drawsLeft} draws remaining`;
+                const maxGainLoss = 2500;
+                const maxMoney = STARTING_MONEY + 1000;
+                moneyBar.style.width = `${Math.min(100, (totalMoney / maxMoney) * 100)}%`;
+                gainsBar.style.width = `${Math.min(100, (totalGains / maxGainLoss) * 100)}%`;
+                lossesBar.style.width = `${Math.min(100, (totalLosses / maxGainLoss) * 100)}%`;
+            }
+
+            function endGame() {
+                finalScoreValue.textContent = totalMoney;
+                totalGainedValue.textContent = totalGains;
+                totalLostValue.textContent = totalLosses;
+                showScreen('endGame');
+            }
+
+            startBtn.addEventListener('click', startGame);
+            decksContainer.addEventListener('click', handleDeckClick);
+            // Both buttons will restart the game in this example
+            nextBtn.addEventListener('click', initGame);
+            menuBtn.addEventListener('click', initGame);
+
+            initGame();
+        });
+    </script>
+</body>
+</html>
