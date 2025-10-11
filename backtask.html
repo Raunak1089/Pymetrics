@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pymetrics - 2-Back Task Game</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+
+        :root {
+            --bg-color: #27ae60;
+            --container-bg: #ffffff;
+            --primary-text: #2c3e50;
+            --secondary-text: #7f8c8d;
+            --accent-color: #f39c12;
+            --success-color: #2ecc71;
+            --danger-color: #e74c3c;
+            --shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: var(--bg-color);
+            color: var(--primary-text);
+            text-align: center;
+        }
+
+        .game-container {
+            width: 90%;
+            max-width: 600px;
+            background: var(--container-bg);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+            position: relative;
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        /* --- Screens --- */
+        .screen { display: none; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; }
+        .screen.visible { display: flex; animation: fadeIn 0.4s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* Instructions Screen */
+        #instructions-screen { text-align: left; }
+        #instructions-screen h1 { background: var(--accent-color); color: white; padding: 5px 15px; border-radius: 20px; font-size: 1.2em; margin-bottom: 20px; display: inline-block; }
+        #instructions-screen p { font-size: 1.1em; line-height: 1.8; }
+        .spacebar { font-weight: 600; padding: 3px 8px; border-radius: 5px; background: var(--primary-text); color: white; font-family: monospace; }
+
+        /* Game Screen */
+        .game-header { position: absolute; top: 20px; right: 30px; font-size: 1.2em; font-weight: 600; color: var(--secondary-text); }
+        #letter-display { font-size: 10em; font-weight: 700; height: 200px; line-height: 200px; }
+        .feedback-indicator { position: absolute; bottom: 20px; width: 80%; height: 10px; background-color: #ecf0f1; border-radius: 5px; overflow: hidden; }
+        .feedback-indicator .flash { width: 100%; height: 100%; transform: scaleX(0); transition: transform 0.1s; transform-origin: left; }
+        .feedback-indicator .flash.correct { background-color: var(--success-color); }
+        .feedback-indicator .flash.incorrect { background-color: var(--danger-color); }
+
+        /* Results Screen */
+        #results-screen { align-items: flex-start; text-align: left; }
+        #results-screen h2 { width: 100%; text-align: center; font-size: 1.8em; margin-bottom: 30px; }
+        .results-summary p { font-size: 1.1em; margin: 12px 0; color: var(--secondary-text); }
+        .results-summary strong { color: var(--primary-text); }
+        .button-container { display: flex; justify-content: space-between; width: 100%; margin-top: auto; }
+        
+        /* General Button */
+        .primary-btn { padding: 15px 50px; font-size: 1.2em; font-weight: 600; border: none; border-radius: 10px; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1); background-color: var(--bg-color); color: var(--container-bg); margin-top: 20px; }
+        .primary-btn:hover { transform: translateY(-3px); }
+        .end-button { padding: 12px 30px; font-size: 1.1em; font-weight: 600; border-radius: 8px; border: none; cursor: pointer; background: #BDC3C7; color: #fff; }
+    </style>
+</head>
+<body>
+
+    <div class="game-container">
+        
+        <!-- Screen 1: Instructions -->
+        <div id="instructions-screen" class="screen visible">
+            <h1 align="center">Instructions</h1>
+            <p>A sequence of letters will appear rapidly, one at a time.</p>
+            <p>Press the <span class="spacebar">spacebar</span> whenever you see a letter that appeared exactly <strong>2 letters before</strong>.</p>
+            <p>For example: A, B, A, C → Press for the second <strong>A</strong>.</p>
+            <div align="center"><button id="start-btn" class="primary-btn">Begin</button></div>
+        </div>
+
+        <!-- Screen 2: Game Play -->
+        <div id="game-screen" class="screen">
+            <div class="game-header" id="progress-counter">0 / 40</div>
+            <div id="letter-display"></div>
+            <div class="feedback-indicator"><div id="feedback-flash" class="flash"></div></div>
+        </div>
+
+        <!-- Screen 3: Results -->
+        <div id="results-screen" class="screen">
+            <h2>Game Complete</h2>
+            <div class="results-summary">
+                <p>You have completed this game.</p>
+                <p><strong>Correct Hits:</strong> <span id="correct-hits-value"></span></p>
+                <p><strong>Missed Targets:</strong> <span id="missed-targets-value"></span></p>
+                <p><strong>Incorrect Hits (False Alarms):</strong> <span id="incorrect-hits-value"></span></p>
+            </div>
+            <div class="button-container">
+                <button class="end-button" id="next-btn">Next</button>
+                <button class="end-button" id="menu-btn">Back To Menu</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- DOM Elements ---
+            const screens = { instructions: document.getElementById('instructions-screen'), game: document.getElementById('game-screen'), results: document.getElementById('results-screen') };
+            const startBtn = document.getElementById('start-btn');
+            const progressCounter = document.getElementById('progress-counter');
+            const letterDisplay = document.getElementById('letter-display');
+            const feedbackFlash = document.getElementById('feedback-flash');
+            const correctHitsValue = document.getElementById('correct-hits-value');
+            const missedTargetsValue = document.getElementById('missed-targets-value');
+            const incorrectHitsValue = document.getElementById('incorrect-hits-value');
+            const nextBtn = document.getElementById('next-btn');
+            const menuBtn = document.getElementById('menu-btn');
+
+            // --- Game Configuration ---
+            const TOTAL_TRIALS = 40;
+            const N_BACK = 2;
+            const TRIAL_DURATION = 1500; // ms per letter
+            const LETTER_VISIBLE_MS = 800; // MODIFIED: How long the letter is visible
+            const LETTERS = ['A', 'B', 'C', 'D', 'G', 'H', 'K', 'L'];
+            const TARGET_PROBABILITY = 0.3; // ~30% of trials will be a target
+
+            // --- Game State & Data ---
+            let gameState = 'instructions';
+            let trialInterval;
+            let sequence = [];
+            let currentTrialNum = 0;
+            let userPressed = false;
+            let correctHits, missedTargets, incorrectHits, totalTargets;
+
+            function showScreen(screenName) {
+                Object.values(screens).forEach(screen => screen.classList.remove('visible'));
+                screens[screenName].classList.add('visible');
+            }
+
+            function initGame() {
+                gameState = 'instructions';
+                sequence = [];
+                currentTrialNum = 0;
+                correctHits = 0;
+                missedTargets = 0;
+                incorrectHits = 0;
+                totalTargets = 0;
+                clearInterval(trialInterval);
+                showScreen('instructions');
+            }
+            
+            function generateSequence() {
+                sequence = [];
+                // Generate first N letters randomly
+                for (let i = 0; i < N_BACK; i++) {
+                    sequence.push(LETTERS[Math.floor(Math.random() * LETTERS.length)]);
+                }
+                // Generate the rest of the sequence
+                for (let i = N_BACK; i < TOTAL_TRIALS; i++) {
+                    if (Math.random() < TARGET_PROBABILITY) {
+                        sequence.push(sequence[i - N_BACK]); // Create a target
+                        totalTargets++;
+                    } else {
+                        let nextLetter;
+                        do {
+                            nextLetter = LETTERS[Math.floor(Math.random() * LETTERS.length)];
+                        } while (nextLetter === sequence[i - N_BACK]); // Ensure it's not a target
+                        sequence.push(nextLetter);
+                    }
+                }
+            }
+
+            function startGame() {
+                generateSequence();
+                currentTrialNum = 0;
+                gameState = 'playing';
+                showScreen('game');
+                trialInterval = setInterval(runTrial, TRIAL_DURATION);
+                runTrial(); // Start the first trial immediately
+            }
+
+            function runTrial() {
+                if (currentTrialNum >= TOTAL_TRIALS) {
+                    endGame();
+                    return;
+                }
+                
+                // --- Score previous trial ---
+                if (currentTrialNum > 0) {
+                    const isTarget = currentTrialNum >= N_BACK && sequence[currentTrialNum - 1] === sequence[currentTrialNum - 1 - N_BACK];
+                    if (isTarget && !userPressed) {
+                        missedTargets++;
+                    }
+                }
+
+                // --- Setup current trial ---
+                userPressed = false;
+                letterDisplay.textContent = sequence[currentTrialNum];
+                
+                // MODIFIED: Set a timeout to hide the letter, creating a flash effect
+                setTimeout(() => {
+                    if (gameState === 'playing') {
+                        letterDisplay.textContent = '';
+                    }
+                }, LETTER_VISIBLE_MS);
+
+                progressCounter.textContent = `${currentTrialNum + 1} / ${TOTAL_TRIALS}`;
+                currentTrialNum++;
+            }
+
+            function handleKeyPress(e) {
+                if (gameState !== 'playing' || e.code !== 'Space' || userPressed) return;
+                
+                userPressed = true; // Only allow one press per trial
+                const isTarget = currentTrialNum > N_BACK && sequence[currentTrialNum - 1] === sequence[currentTrialNum - 1 - N_BACK];
+
+                if (isTarget) {
+                    correctHits++;
+                    flashFeedback(true);
+                } else {
+                    incorrectHits++;
+                    flashFeedback(false);
+                }
+            }
+            
+            function flashFeedback(isCorrect) {
+                feedbackFlash.className = isCorrect ? 'flash correct' : 'flash incorrect';
+                feedbackFlash.style.transform = 'scaleX(1)';
+                setTimeout(() => {
+                    feedbackFlash.style.transform = 'scaleX(0)';
+                }, 200);
+            }
+
+            function endGame() {
+                clearInterval(trialInterval);
+                gameState = 'finished';
+                
+                // Final check for missed target on the very last trial
+                if (sequence[TOTAL_TRIALS - 1] === sequence[TOTAL_TRIALS - 1 - N_BACK] && !userPressed) {
+                     missedTargets++;
+                }
+                
+                correctHitsValue.textContent = `${correctHits} / ${totalTargets}`;
+                missedTargetsValue.textContent = `${missedTargets}`;
+                incorrectHitsValue.textContent = `${incorrectHits}`;
+                showScreen('results');
+            }
+
+            // --- Event Listeners ---
+            startBtn.addEventListener('click', startGame);
+            document.addEventListener('keydown', handleKeyPress);
+            nextBtn.addEventListener('click', initGame);
+            menuBtn.addEventListener('click', initGame);
+            
+            initGame();
+        });
+    </script>
+</body>
+</html>
+
