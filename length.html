@@ -68,8 +68,9 @@
         .eye.left { left: 30px; }
         .eye.right { right: 30px; }
         .mouth { height: 8px; background: white; position: absolute; bottom: 35px; left: 50%; transform: translateX(-50%); }
-        .mouth.small { width: 40px; }
-        .mouth.big { width: 60px; }
+        /* MODIFIED: Reduced the difference in mouth sizes */
+        .mouth.small { width: 45px; }
+        .mouth.big { width: 55px; }
 
         .feedback-display { display: none; flex-direction: column; align-items: center; }
         .feedback-icon { width: 120px; height: 120px; border-radius: 50%; background: #f0f4f8; display: flex; justify-content: center; align-items: center; font-size: 4em; }
@@ -79,7 +80,7 @@
         .feedback-text .answer { font-weight: 700; font-size: 1.1em; }
         .feedback-text .reward { font-size: 1em; color: var(--secondary-text); }
 
-        /* Results Screen */
+        /* MODIFIED: Results Screen Styling */
         #results-screen { align-items: flex-start; text-align: left; }
         #results-screen h2 { width: 100%; text-align: center; font-size: 1.8em; margin-bottom: 30px; }
         .results-summary p { font-size: 1.1em; margin: 12px 0; color: var(--secondary-text); }
@@ -89,8 +90,8 @@
         /* General Button */
         .primary-btn { padding: 15px 50px; font-size: 1.2em; font-weight: 600; border: none; border-radius: 10px; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1); background-color: var(--bg-color); color: var(--container-bg); margin-top: 20px; }
         .primary-btn:hover { transform: translateY(-3px); }
-        .end-button { padding: 12px 30px; font-size: 1.1em; font-weight: 600; border-radius: 8px; border: none; cursor: pointer; background: #BDC3C7; color: #fff; transition: background-color 0.2s; }
-        .end-button:hover { background-color: #a9afb3; }
+        .end-button { padding: 12px 30px; font-size: 1.1em; font-weight: 600; border-radius: 8px; border: none; cursor: pointer; background: #9CCC65; color: #fff; transition: background-color 0.2s; }
+        .end-button:hover { background-color: #8BC34A; }
     </style>
 </head>
 <body>
@@ -127,6 +128,7 @@
             </div>
         </div>
 
+        <!-- MODIFIED: Results Screen Structure -->
         <div id="results-screen" class="screen">
             <h2>Game Complete</h2>
             <div class="results-summary">
