@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pymetrics - Tower Game</title>
     <style>
-        @import url('https://fonts.googleapis.comcom/css2?family=Poppins:wght@400;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
 
         :root {
             --bg-color: #27ae60;
@@ -57,23 +57,33 @@
         #target-container { height: 120px; border-bottom: 2px solid #ecf0f1; margin-bottom: 20px; padding-bottom: 10px; }
         #play-container { flex-grow: 1; }
 
-        .tower { width: 30%; height: 100%; display: flex; flex-direction: column-reverse; align-items: center; border-bottom: 10px solid var(--tower-color); position: relative; }
+        .tower { width: 30%; height: 100%; display: flex; flex-direction: column-reverse; align-items: center; border-bottom: 10px solid var(--tower-color); position: relative; cursor: pointer; }
         .tower::after { content: ''; position: absolute; bottom: 0; width: 10px; height: 100%; background: var(--tower-color); }
-        .target .tower { height: 100%; border-bottom-width: 5px; }
+        .target .tower { height: 100%; border-bottom-width: 5px; cursor: default; }
         .target .tower::after { width: 5px; }
 
-        .disk { border-radius: 10px; margin-bottom: 4px; transition: opacity 0.2s; }
-        .disk.dragging { opacity: 0.5; }
+        .disk {
+            border-radius: 10px;
+            margin-bottom: 4px;
+            transition: all 0.2s;
+            cursor: pointer;
+            width: 80%; /* MODIFIED: All disks have the same width */
+        }
+        
+        .disk.selected {
+            box-shadow: 0 0 0 4px var(--accent-color);
+            transform: translateY(-5px);
+        }
         
         .play .disk { height: 30px; }
         .target .disk { height: 15px; }
         
-        /* Disk Sizes & Colors */
-        .disk[data-size='5'] { width: 95%; background-color: #e74c3c; } /* Red */
-        .disk[data-size='4'] { width: 80%; background-color: #f8a5c2; } /* Pink */
-        .disk[data-size='3'] { width: 65%; background-color: #2ecc71; } /* Green */
-        .disk[data-size='2'] { width: 50%; background-color: #f1c40f; } /* Yellow */
-        .disk[data-size='1'] { width: 35%; background-color: #3498db; } /* Blue */
+        /* Disk Colors (width is now handled by .disk class) */
+        .disk[data-size='5'] { background-color: #e74c3c; } /* Red */
+        .disk[data-size='4'] { background-color: #f8a5c2; } /* Pink */
+        .disk[data-size='3'] { background-color: #2ecc71; } /* Green */
+        .disk[data-size='2'] { background-color: #f1c40f; } /* Yellow */
+        .disk[data-size='1'] { background-color: #3498db; } /* Blue */
         
         .controls { display: flex; justify-content: center; gap: 20px; padding-top: 20px; }
         .control-btn { padding: 12px 30px; font-size: 1.1em; font-weight: 600; border-radius: 8px; border: none; cursor: pointer; color: white; }
@@ -87,7 +97,6 @@
         .results-summary strong { color: var(--primary-text); }
         .button-container { display: flex; justify-content: space-between; width: 100%; margin-top: auto; }
         
-        /* General Button */
         .primary-btn { padding: 15px 50px; font-size: 1.2em; font-weight: 600; border: none; border-radius: 10px; cursor: pointer; transition: all 0.2s ease; background-color: var(--bg-color); color: var(--container-bg); margin-top: 20px; }
         .end-button { padding: 12px 30px; font-size: 1.1em; font-weight: 600; border-radius: 8px; border: none; cursor: pointer; background: #BDC3C7; color: #fff; }
     </style>
@@ -101,7 +110,7 @@
             <ul>
                 <li>Your goal is to make the bottom towers match the target towers.</li>
                 <li>You can only move the top disk on a tower.</li>
-                <li>Drag a disk onto a new tower to move it.</li>
+                <li><strong>Click a tower</strong> to lift its top disk, then <strong>click another tower</strong> to place it.</li>
                 <li>You have <strong>2 minutes</strong> to solve the puzzle.</li>
             </ul>
             <button id="start-btn" class="primary-btn">Begin</button>
@@ -153,24 +162,45 @@
             
             // --- Game Config ---
             const GAME_DURATION = 120; // 2 minutes
-            const INITIAL_STATE = [[5, 4, 3], [], [2, 1]]; // Disk sizes. Larger number is larger disk.
-            const TARGET_STATE = [[], [3, 2], [5, 4, 1]];
+            const INITIAL_STATE = [[5, 4, 3], [], [2, 1]];
+            let TARGET_STATE = []; // This will be generated randomly
 
             // --- Game State ---
             let gameState = 'instructions';
             let towersState, moveCount, gameTimer, startTime, timeTaken;
             let moveHistory = [];
-            let draggedDisk = null;
+            let selectedDisk = null;
 
             function showScreen(screenName) {
                 Object.values(screens).forEach(screen => screen.classList.remove('visible'));
                 screens[screenName].classList.add('visible');
             }
 
+            function generateRandomTarget() {
+                const allDisks = [1, 2, 3, 4, 5];
+                for (let i = allDisks.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [allDisks[i], allDisks[j]] = [allDisks[j], allDisks[i]];
+                }
+
+                let newTarget;
+                do {
+                    newTarget = [[], [], []];
+                    allDisks.forEach(disk => {
+                        const randomTower = Math.floor(Math.random() * 3);
+                        newTarget[randomTower].push(disk);
+                    });
+                } while (JSON.stringify(newTarget) === JSON.stringify(INITIAL_STATE));
+
+                TARGET_STATE = newTarget;
+            }
+
             function initGame() {
+                generateRandomTarget();
                 towersState = JSON.parse(JSON.stringify(INITIAL_STATE));
                 moveCount = 0;
                 moveHistory = [];
+                selectedDisk = null;
                 timeTaken = 0;
                 clearInterval(gameTimer);
                 renderAllTowers();
@@ -178,7 +208,6 @@
             }
 
             function startGame() {
-                initGame(); // Reset state
                 gameState = 'playing';
                 startTime = Date.now();
                 
@@ -186,7 +215,7 @@
                     const elapsed = Math.floor((Date.now() - startTime) / 1000);
                     const timeLeft = GAME_DURATION - elapsed;
                     if (timeLeft <= 0) {
-                        endGame(false); // Time's up
+                        endGame(false);
                     }
                     const minutes = Math.floor(timeLeft / 60);
                     const seconds = timeLeft % 60;
@@ -216,57 +245,50 @@
                         towerEl.appendChild(diskEl);
                     });
                     
-                    if (type === 'play') {
-                        // Make top disk draggable
-                        if (towerEl.lastChild) {
-                            towerEl.lastChild.draggable = true;
-                        }
-                        // Add drag and drop listeners
-                        towerEl.addEventListener('dragstart', handleDragStart);
-                        towerEl.addEventListener('dragover', handleDragOver);
-                        towerEl.addEventListener('drop', handleDrop);
-                    }
                     container.appendChild(towerEl);
                 });
             }
 
-            function handleDragStart(e) {
-                if (!e.target.classList.contains('disk')) return;
-                draggedDisk = {
-                    size: parseInt(e.target.dataset.size),
-                    sourceTower: parseInt(e.target.parentElement.dataset.towerId)
-                };
-                e.target.classList.add('dragging');
-            }
-            
-            function handleDragOver(e) { e.preventDefault(); }
+            function handleTowerClick(e) {
+                const clickedTowerEl = e.target.closest('.tower');
+                if (!clickedTowerEl || gameState !== 'playing') return;
 
-            function handleDrop(e) {
-                e.preventDefault();
-                const destinationTowerEl = e.target.classList.contains('tower') ? e.target : e.target.parentElement;
-                const destinationTowerId = parseInt(destinationTowerEl.dataset.towerId);
+                const clickedTowerId = parseInt(clickedTowerEl.dataset.towerId);
                 
-                if (draggedDisk.sourceTower === destinationTowerId) return; // Dropped on same tower
+                if (selectedDisk === null) {
+                    if (towersState[clickedTowerId].length > 0) {
+                        const topDiskSize = towersState[clickedTowerId][towersState[clickedTowerId].length - 1];
+                        selectedDisk = {
+                            size: topDiskSize,
+                            sourceTower: clickedTowerId
+                        };
+                        playContainer.querySelector(`[data-tower-id='${clickedTowerId}']`).lastChild.classList.add('selected');
+                    }
+                } else {
+                    const destinationTowerId = clickedTowerId;
+                    const sourceTowerId = selectedDisk.sourceTower;
 
-                const destinationTower = towersState[destinationTowerId];
-                const topDiskSize = destinationTower.length > 0 ? destinationTower[destinationTower.length - 1] : Infinity;
-
-                if (draggedDisk.size < topDiskSize) { // Valid move
+                    if (sourceTowerId === destinationTowerId) {
+                        playContainer.querySelector(`[data-tower-id='${sourceTowerId}']`).lastChild.classList.remove('selected');
+                        selectedDisk = null;
+                        return;
+                    }
+                    
                     moveHistory.push(JSON.parse(JSON.stringify(towersState)));
                     
-                    towersState[draggedDisk.sourceTower].pop();
-                    towersState[destinationTowerId].push(draggedDisk.size);
+                    towersState[sourceTowerId].pop();
+                    towersState[destinationTowerId].push(selectedDisk.size);
                     
                     moveCount++;
                     updateMoveCounter();
-                    renderTowers(playContainer, towersState, 'play');
+                    renderAllTowers(); 
                     
                     if (checkWin()) {
-                        endGame(true); // Win
+                        endGame(true);
                     }
+                    
+                    selectedDisk = null;
                 }
-                draggedDisk = null;
-                document.querySelector('.dragging')?.classList.remove('dragging');
             }
             
             function handleUndo() {
@@ -274,7 +296,8 @@
                     towersState = moveHistory.pop();
                     moveCount--;
                     updateMoveCounter();
-                    renderTowers(playContainer, towersState, 'play');
+                    renderAllTowers();
+                    if (selectedDisk) selectedDisk = null;
                 }
             }
 
@@ -305,15 +328,18 @@
                 towersState = JSON.parse(JSON.stringify(INITIAL_STATE));
                 moveCount = 0;
                 moveHistory = [];
+                selectedDisk = null;
                 updateMoveCounter();
-                renderTowers(playContainer, towersState, 'play');
+                renderAllTowers();
             });
             undoBtn.addEventListener('click', handleUndo);
             nextBtn.addEventListener('click', initGame);
             menuBtn.addEventListener('click', initGame);
+            playContainer.addEventListener('click', handleTowerClick);
             
             initGame();
         });
     </script>
 </body>
 </html>
+
