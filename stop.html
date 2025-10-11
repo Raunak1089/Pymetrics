@@ -69,15 +69,17 @@
         #feedback-text.visible { opacity: 1; }
 
         /* MODIFIED: Results Screen Styling */
-        #results-screen { text-align: left; align-items: flex-start; }
-        #results-screen h2 { font-size: 1.8em; color: var(--primary-text); margin-bottom: 20px; width: 100%; text-align: center; }
-        .results-summary p { font-size: 1.1em; margin: 10px 0; }
-        .results-summary strong { font-weight: 600; color: var(--primary-text); }
-        #results-screen .button-container { width: 100%; text-align: center; margin-top: auto; }
-
+        #results-screen { align-items: flex-start; text-align: left; }
+        #results-screen h2 { width: 100%; text-align: center; font-size: 1.8em; margin-bottom: 30px; }
+        .results-summary p { font-size: 1.1em; margin: 12px 0; color: var(--secondary-text); }
+        .results-summary strong { color: var(--primary-text); }
+        .button-container { display: flex; justify-content: space-between; width: 100%; margin-top: auto; }
+        
         /* General Button */
         .primary-btn { padding: 15px 40px; font-size: 1.2em; font-weight: 600; border: none; border-radius: 10px; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1); background-color: var(--bg-color); color: var(--container-bg); margin-top: 20px; }
         .primary-btn:hover { transform: translateY(-3px); box-shadow: 0 5px 12px rgba(0, 0, 0, 0.2); }
+        .end-button { padding: 12px 30px; font-size: 1.1em; font-weight: 600; border-radius: 8px; border: none; cursor: pointer; background: #BDC3C7; color: #fff; transition: background-color 0.2s; }
+        .end-button:hover { background-color: #a9afb3; }
     </style>
 </head>
 <body>
@@ -101,6 +103,7 @@
             <div id="feedback-text"></div>
         </div>
 
+        <!-- MODIFIED: Results Screen HTML Structure -->
         <div id="results-screen" class="screen">
             <h2>Game Complete</h2>
             <div class="results-summary">
@@ -108,9 +111,11 @@
                 <p><strong>Total correct:</strong> <span id="total-correct-value"></span></p>
                 <p><strong>Green correct:</strong> <span id="green-correct-value"></span></p>
                 <p><strong>Red correct:</strong> <span id="red-correct-value"></span></p>
+                <p>Click the next button to move on to the next game.</p>
             </div>
             <div class="button-container">
-                <button id="play-again-btn" class="primary-btn">Play Again</button>
+                <button class="end-button" id="next-btn">Next</button>
+                <button class="end-button" id="menu-btn">Back To Menu</button>
             </div>
         </div>
     </div>
@@ -120,20 +125,21 @@
             // --- DOM Elements ---
             const screens = { instructions: document.getElementById('instructions-screen'), game: document.getElementById('game-screen'), results: document.getElementById('results-screen') };
             const startBtn = document.getElementById('start-btn');
-            const playAgainBtn = document.getElementById('play-again-btn');
             const redCircle = document.getElementById('red-circle');
             const greenCircle = document.getElementById('green-circle');
             const fixationCross = document.getElementById('fixation-cross');
             const feedbackText = document.getElementById('feedback-text');
             
-            // Result Screen Elements
+            // MODIFIED: Result Screen Elements
             const totalCorrectValue = document.getElementById('total-correct-value');
             const greenCorrectValue = document.getElementById('green-correct-value');
             const redCorrectValue = document.getElementById('red-correct-value');
+            const nextBtn = document.getElementById('next-btn');
+            const menuBtn = document.getElementById('menu-btn');
 
             // --- Game Configuration ---
-            const TOTAL_TRIALS = 40; // Example total
-            const GO_PROBABILITY = 0.7;
+            const TOTAL_TRIALS = 80; // Matching screenshot example
+            const GO_PROBABILITY = 0.525; // to get ~42 red circles
             const STIMULUS_DURATION = 1000;
             const FIXATION_DURATION = 500;
 
@@ -144,7 +150,7 @@
             let trialTimeout;
             let canRespond = false;
             
-            // --- MODIFIED: Detailed Data Collection ---
+            // --- Detailed Data Collection ---
             let correctGoResponses, totalGoTrials, correctNoGoResponses, totalNoGoTrials;
 
             // --- Game Logic ---
@@ -233,7 +239,6 @@
                 fixationCross.style.display = 'none';
             }
 
-            // MODIFIED: endGame function to show detailed stats
             function endGame() {
                 gameState = 'finished';
                 const totalCorrect = correctGoResponses + correctNoGoResponses;
@@ -250,10 +255,11 @@
                 showScreen('game');
                 runTrial();
             });
-            playAgainBtn.addEventListener('click', initGame);
+            // MODIFIED: Event listeners for new buttons
+            nextBtn.addEventListener('click', initGame);
+            menuBtn.addEventListener('click', initGame);
             document.addEventListener('keydown', handleKeyPress);
             
-            // --- Initialise ---
             initGame();
         });
     </script>
