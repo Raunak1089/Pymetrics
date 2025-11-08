@@ -361,7 +361,7 @@
             playAgainBtn.addEventListener('click', initGame);
             easyChoiceBtn.addEventListener('click', () => selectTask('easy'));
             hardChoiceBtn.addEventListener('click', () => selectTask('hard'));
-            document.addEventListener('keydown', handleKeyPress);
+            document.addEventListener('keyup', handleKeyPress);
             
             // --- Initialise ---
             initGame();
